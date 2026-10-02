@@ -1,0 +1,7 @@
+.vs
+
+JobTracker/bin
+JobTracker/obj
+JobTracker/Properties/launchSettings.json
+JobTracker/JobTracker.csproj.user
+JobTracker/jobtracker.db
