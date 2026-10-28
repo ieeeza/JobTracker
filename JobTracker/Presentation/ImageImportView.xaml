@@ -1,0 +1,82 @@
+<UserControl x:Class="JobTracker.Presentation.ImageImportView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="clr-namespace:JobTracker.Presentation">
+ <TabControl SelectedIndex="{Binding ScreenshotModeIndex}">
+ <TabItem Header="Capturas individuais">
+ <Border x:Name="DropArea" Style="{StaticResource Card}" AllowDrop="True"
+         DragOver="OnDragOver" DragLeave="OnDragLeave" Drop="OnDrop">
+  <StackPanel>
+   <TextBlock Text="Importar por prints" Style="{StaticResource Heading}"/>
+   <StackPanel Margin="0,4,0,12">
+    <TextBlock Text="{Binding Ollama.Configuration.Model, StringFormat=Modelo: {0} — Ollama local}" FontWeight="SemiBold"/>
+    <TextBlock Text="{Binding Ollama.ConnectionStatus}" Style="{StaticResource Muted}" AutomationProperties.LiveSetting="Polite"/>
+    <Button Content="Verificar conexão" Command="{Binding Action}" CommandParameter="OllamaVerify" HorizontalAlignment="Left"/>
+    <TextBlock Text="A IA fornece sugestões para revisão. Endereço, modelo e limites podem ser alterados em Configurações."
+               Style="{StaticResource Muted}"/>
+   </StackPanel>
+   <TextBlock Text="Arraste imagens para esta área, selecione arquivos ou use Win + Shift + S e Ctrl + V fora dos campos de texto. A URL é opcional."
+              Style="{StaticResource Muted}"/>
+   <WrapPanel Margin="0,10,0,0">
+    <Button x:Name="AddPrintsButton" Content="Adicionar prints" Command="{Binding Action}" CommandParameter="ImageAdd"/>
+    <Button Content="Colar print" Command="{Binding Action}" CommandParameter="ImagePaste"/>
+    <Button Content="Remover todas" Command="{Binding Action}" CommandParameter="ImageClear"/>
+   </WrapPanel>
+   <TextBlock Text="{Binding Images.CountLabel}" Margin="0,6" AutomationProperties.LiveSetting="Polite"/>
+   <ListBox ItemsSource="{Binding Images.Items}" SelectedItem="{Binding Images.Selected}" MaxHeight="340"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True"
+            VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="Prints na ordem de processamento">
+    <ListBox.ItemTemplate>
+     <DataTemplate>
+      <Grid Margin="4"><Grid.ColumnDefinitions>
+       <ColumnDefinition Width="38"/><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+       <TextBlock Text="{Binding Order}" VerticalAlignment="Center"/>
+       <Image Grid.Column="1" Source="{Binding Thumbnail}" Width="110" Height="80" Stretch="Uniform" AutomationProperties.Name="{Binding Name}"/>
+       <StackPanel Grid.Column="2" Margin="12,0" VerticalAlignment="Center">
+        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Style="{StaticResource Muted}"/>
+       </StackPanel>
+       <Button Grid.Column="3" Content="Remover" Click="OnRemoveImage" VerticalAlignment="Center"/>
+      </Grid>
+     </DataTemplate>
+    </ListBox.ItemTemplate>
+   </ListBox>
+   <WrapPanel>
+    <Button Content="Ampliar selecionado" Command="{Binding Action}" CommandParameter="ImagePreview"/>
+    <Button Content="↑ Mover acima" Command="{Binding Action}" CommandParameter="ImageUp"/>
+    <Button Content="↓ Mover abaixo" Command="{Binding Action}" CommandParameter="ImageDown"/>
+   </WrapPanel>
+   <Button Content="Analisar com IA" Command="{Binding Action}" CommandParameter="ImageAnalyze"
+           Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
+   <ProgressBar Minimum="0" Maximum="100" Value="{Binding Images.Progress, Mode=OneWay}" Height="6" Margin="0,8"/>
+   <TextBlock Text="{Binding Images.Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+   <TextBlock Text="As imagens são temporárias e permanecem neste computador. Revise os dados sugeridos antes de salvar. Você também pode preencher os campos manualmente." Style="{StaticResource Muted}" Margin="0,8"/>
+   <TextBlock Text="{Binding Images.Warnings}" TextWrapping="Wrap" Margin="0,8" Foreground="{DynamicResource TextBrush}"/>
+   <Expander Header="Revisar resultado e origem" IsExpanded="True"
+             Visibility="{Binding Images.HasAnalysis, Converter={StaticResource BoolVisibility}}">
+    <StackPanel Margin="0,12">
+     <WrapPanel Visibility="{Binding Images.HasCapture, Converter={StaticResource BoolVisibility}}">
+      <StackPanel Width="280"><TextBlock Text="Plataforma identificada (revise)"/>
+       <TextBox Text="{Binding Images.Source, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"/>
+      </StackPanel>
+      <StackPanel Width="320"><TextBlock Text="Identificador da vaga (revise)"/>
+       <TextBox Text="{Binding Images.JobReference, UpdateSourceTrigger=PropertyChanged}" MaxLength="500"/>
+      </StackPanel>
+     </WrapPanel>
+     <TextBlock Text="O formulário abaixo é editável. Compare as sugestões com os prints. O JSON da IA é uma prévia temporária, não uma transcrição OCR." Style="{StaticResource Muted}"/>
+     <TabControl Margin="0,8">
+      <TabItem Header="Original por print" Visibility="{Binding Images.HasCapture, Converter={StaticResource BoolVisibility}}"><TextBox Text="{Binding Images.OriginalText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
+        TextWrapping="Wrap" Height="220" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Texto original de cada print"/></TabItem>
+      <TabItem Header="Resultado consolidado" IsSelected="True"><TextBox Text="{Binding Images.ConsolidatedText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
+        TextWrapping="Wrap" Height="220" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="JSON da IA ou captura histórica"/></TabItem>
+     </TabControl>
+    </StackPanel>
+   </Expander>
+
+  </StackPanel>
+ </Border>
+ </TabItem>
+ <TabItem Header="Importação em lote"><local:BatchImportView DataContext="{Binding Batch}"/></TabItem>
+ </TabControl>
+</UserControl>

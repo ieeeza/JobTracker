@@ -26,9 +26,30 @@ namespace JobTracker.Migrations
                     b.Property<DateTime>("AppliedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Company")
+                    b.Property<string>("BatchImageHashes")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BatchImportKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CanonicalUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Company")
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Contract")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
@@ -38,11 +59,55 @@ namespace JobTracker.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ExtractionMetadata")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("HasApplied")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NextAction")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("NextActionDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("NormalizedUrl")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OcrCapture")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("OriginalUrl")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Requirements")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Salary")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Seniority")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -51,16 +116,219 @@ namespace JobTracker.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Title")
-                        .IsRequired()
                         .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WorkMode")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Source", "ExternalJobId");
+                    b.HasIndex("AppliedAt");
 
-                    b.ToTable("Jobs");
+                    b.HasIndex("BatchImportKey")
+                        .IsUnique();
+
+                    b.HasIndex("CanonicalUrl")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("NormalizedUrl")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("Source", "ExternalJobId")
+                        .IsUnique();
+
+                    b.ToTable("Jobs", (string)null);
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.JobAnalysis.Infrastructure.Persistence.AnalysisCacheRow", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("VisionAnalysisCache", (string)null);
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.JobAnalysis.Infrastructure.Persistence.ImportBatchRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Folder")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fingerprint")
+                        .IsUnique();
+
+                    b.HasIndex("StartedAtUtc");
+
+                    b.ToTable("ScreenshotImportBatches", (string)null);
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.JobApplications.Domain.Appointment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Completed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("LocalDateTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("LocalDateTime");
+
+                    b.ToTable("Appointment");
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.JobApplications.Domain.JobEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId");
+
+                    b.ToTable("JobEvent");
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.JobApplications.Domain.JobTag", b =>
+                {
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("JobId", "Name");
+
+                    b.ToTable("JobTag");
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.Settings.Domain.Preference", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("Preference");
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.JobApplications.Domain.Appointment", b =>
+                {
+                    b.HasOne("JobTracker.Modules.JobAnalysis.Domain.Job", null)
+                        .WithMany("Appointments")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.JobApplications.Domain.JobEvent", b =>
+                {
+                    b.HasOne("JobTracker.Modules.JobAnalysis.Domain.Job", null)
+                        .WithMany("Events")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.JobApplications.Domain.JobTag", b =>
+                {
+                    b.HasOne("JobTracker.Modules.JobAnalysis.Domain.Job", null)
+                        .WithMany("Tags")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobTracker.Modules.JobAnalysis.Domain.Job", b =>
+                {
+                    b.Navigation("Appointments");
+
+                    b.Navigation("Events");
+
+                    b.Navigation("Tags");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,4 +1,4 @@
-﻿using JobTracker.Modules.JobAnalysis.Application.Models;
+using JobTracker.Modules.JobAnalysis.Application.Models;
 
 namespace JobTracker.Modules.JobAnalysis.Application.Services;
 
@@ -6,95 +6,103 @@ public class JobIdentifier
 {
     public JobIdentity Identify(string url)
     {
-        var uri = new Uri(url);
+        if (url?.Length > 8000) throw new ArgumentException("A URL excede 8.000 caracteres.", nameof(url));
+        if (!Uri.TryCreate(url?.Trim(), UriKind.Absolute, out Uri? uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) ||
+            !string.IsNullOrEmpty(uri.UserInfo))
+            throw new ArgumentException("Insira uma URL HTTP ou HTTPS válida, sem credenciais.", nameof(url));
 
-        var source = IdentifySource(uri);
-
-        var externalJobId = source switch
+        string source = IdentifySource(uri);
+        string? externalJobId = source switch
         {
-            "Indeed" => GetIndeedJobId(uri),
-
+            "Indeed" when uri.AbsolutePath is "/viewjob" or "/rc/clk" => GetSingleQueryValue(uri, "jk"),
             "LinkedIn" => GetLinkedInJobId(uri),
-
             _ => null
         };
 
-        var normalizedUrl = NormalizeUrl(uri, source, externalJobId);
+        string normalizedUrl = (source, externalJobId) switch
+        {
+            ("Indeed", not null) => $"https://{uri.IdnHost}/viewjob?jk={Uri.EscapeDataString(externalJobId)}",
+            ("LinkedIn", not null) => $"https://{uri.IdnHost}/jobs/view/{externalJobId}",
+            _ => Normalize(uri)
+        };
 
-        return new JobIdentity(
-            Source: source,
-            ExternalJobId: externalJobId,
-            OriginalUrl: url,
-            NormalizedUrl: normalizedUrl
-        );
+        return new JobIdentity(source, externalJobId, uri.AbsoluteUri, normalizedUrl);
+    }
+
+    private static string Normalize(Uri uri)
+    {
+        string[] tracking = ["fbclid", "gclid", "msclkid", "dclid", "mc_cid", "mc_eid", "trk", "trackingId", "gh_src", "lever-source", "lever-origin"];
+        var builder = new UriBuilder(uri) { Fragment = "" };
+        builder.Query = string.Join("&", uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Where(part =>
+            {
+                string key = Uri.UnescapeDataString(part.Split('=', 2)[0]);
+                return !key.StartsWith("utm_", StringComparison.OrdinalIgnoreCase) && !tracking.Contains(key, StringComparer.OrdinalIgnoreCase);
+            }));
+        return builder.Uri.AbsoluteUri;
     }
 
     private static string IdentifySource(Uri uri)
     {
-        var host = uri.Host.ToLowerInvariant();
+        if (!uri.IsDefaultPort)
+            return uri.IdnHost;
 
-        if (host.Contains("indeed.com"))
+        string host = uri.IdnHost;
+        if (IsDomain(host, "indeed.com"))
             return "Indeed";
-
-        if (host.Contains("linkedin.com"))
+        if (IsDomain(host, "linkedin.com"))
             return "LinkedIn";
-
-        if (host.Contains("gupy.io"))
+        if (IsDomain(host, "gupy.io"))
             return "Gupy";
-
-        return uri.Host;
+        if (IsDomain(host, "greenhouse.io")) return "Greenhouse";
+        if (IsDomain(host, "lever.co")) return "Lever";
+        return host;
     }
 
-    private static string? GetIndeedJobId(Uri uri)
-    {
-        var query = ParseQuery(uri.Query);
-
-        return query.TryGetValue("jk", out var jobId)
-            ? jobId
-            : null;
-    }
+    private static bool IsDomain(string host, string domain) =>
+        host.Equals(domain, StringComparison.OrdinalIgnoreCase) ||
+        host.EndsWith("." + domain, StringComparison.OrdinalIgnoreCase);
 
     private static string? GetLinkedInJobId(Uri uri)
     {
-        var query = ParseQuery(uri.Query);
-
-        return query.TryGetValue("currentJobId", out var jobId)
-            ? jobId
-            : null;
-    }
-
-    private static string NormalizeUrl(
-        Uri uri,
-        string source,
-        string? externalJobId)
-    {
-        if (source == "Indeed" &&
-            !string.IsNullOrWhiteSpace(externalJobId))
+        const string prefix = "/jobs/view/";
+        if (uri.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal))
         {
-            return $"https://{uri.Host}/viewjob?jk={externalJobId}";
+            string id = uri.AbsolutePath[prefix.Length..].TrimEnd('/');
+            if (IsNumericId(id))
+                return id;
         }
 
-        if (source == "LinkedIn" &&
-            !string.IsNullOrWhiteSpace(externalJobId))
+        if (uri.AbsolutePath is "/jobs/search" or "/jobs/search/")
         {
-            return $"https://{uri.Host}/jobs/view/{externalJobId}";
+            string? id = GetSingleQueryValue(uri, "currentJobId");
+            if (id is not null && IsNumericId(id))
+                return id;
         }
 
-        return $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath}"
-            .TrimEnd('/');
+        return null;
     }
 
-    private static Dictionary<string, string> ParseQuery(string query)
+    private static bool IsNumericId(string value) =>
+        value.Length is > 0 and <= 500 && value.All(char.IsAsciiDigit);
+
+    private static string? GetSingleQueryValue(Uri uri, string key)
     {
-        return query
-            .TrimStart('?')
-            .Split('&', StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => x.Split('=', 2))
-            .Where(x => x.Length == 2)
-            .ToDictionary(
-                x => Uri.UnescapeDataString(x[0]),
-                x => Uri.UnescapeDataString(x[1]),
-                StringComparer.OrdinalIgnoreCase
-            );
+        string? result = null;
+        foreach (string part in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] pair = part.Split('=', 2);
+            if (pair.Length != 2 || Uri.UnescapeDataString(pair[0]) != key)
+                continue;
+
+            string value = Uri.UnescapeDataString(pair[1]);
+            if (result is not null || value.Length is 0 or > 500 ||
+                !value.All(char.IsAsciiLetterOrDigit))
+                return null;
+            result = value;
+        }
+
+        return result;
     }
 }
