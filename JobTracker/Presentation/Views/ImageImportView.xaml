@@ -11,16 +11,16 @@
    <StackPanel Margin="0,4,0,12">
     <TextBlock Text="{Binding Ollama.Configuration.Model, StringFormat=Modelo: {0} — Ollama local}" FontWeight="SemiBold"/>
     <TextBlock Text="{Binding Ollama.ConnectionStatus}" Style="{StaticResource Muted}" AutomationProperties.LiveSetting="Polite"/>
-    <Button Content="Verificar conexão" Command="{Binding Action}" CommandParameter="OllamaVerify" HorizontalAlignment="Left"/>
+    <Button Content="Verificar conexão" Command="{Binding Ollama.VerifySavedCommand}" HorizontalAlignment="Left"/>
     <TextBlock Text="A IA fornece sugestões para revisão. Endereço, modelo e limites podem ser alterados em Configurações."
                Style="{StaticResource Muted}"/>
    </StackPanel>
    <TextBlock Text="Arraste imagens para esta área, selecione arquivos ou use Win + Shift + S e Ctrl + V fora dos campos de texto. A URL é opcional."
               Style="{StaticResource Muted}"/>
    <WrapPanel Margin="0,10,0,0">
-    <Button x:Name="AddPrintsButton" Content="Adicionar prints" Command="{Binding Action}" CommandParameter="ImageAdd"/>
-    <Button Content="Colar print" Command="{Binding Action}" CommandParameter="ImagePaste"/>
-    <Button Content="Remover todas" Command="{Binding Action}" CommandParameter="ImageClear"/>
+    <Button x:Name="AddPrintsButton" Content="Adicionar prints" Command="{Binding Images.AddCommand}"/>
+    <Button Content="Colar print" Command="{Binding Images.PasteCommand}"/>
+    <Button Content="Remover todas" Command="{Binding Images.ClearCommand}"/>
    </WrapPanel>
    <TextBlock Text="{Binding Images.CountLabel}" Margin="0,6" AutomationProperties.LiveSetting="Polite"/>
    <ListBox ItemsSource="{Binding Images.Items}" SelectedItem="{Binding Images.Selected}" MaxHeight="340"
@@ -43,11 +43,11 @@
     </ListBox.ItemTemplate>
    </ListBox>
    <WrapPanel>
-    <Button Content="Ampliar selecionado" Command="{Binding Action}" CommandParameter="ImagePreview"/>
-    <Button Content="↑ Mover acima" Command="{Binding Action}" CommandParameter="ImageUp"/>
-    <Button Content="↓ Mover abaixo" Command="{Binding Action}" CommandParameter="ImageDown"/>
+    <Button Content="Ampliar selecionado" Command="{Binding Images.PreviewCommand}"/>
+    <Button Content="↑ Mover acima" Command="{Binding Images.MoveUpCommand}"/>
+    <Button Content="↓ Mover abaixo" Command="{Binding Images.MoveDownCommand}"/>
    </WrapPanel>
-   <Button Content="Analisar com IA" Command="{Binding Action}" CommandParameter="ImageAnalyze"
+   <Button Content="Analisar com IA" Command="{Binding AnalyzeImagesCommand}"
            Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
    <ProgressBar Minimum="0" Maximum="100" Value="{Binding Images.Progress, Mode=OneWay}" Height="6" Margin="0,8"/>
    <TextBlock Text="{Binding Images.Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>

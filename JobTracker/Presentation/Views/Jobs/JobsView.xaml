@@ -88,8 +88,7 @@
                 </StackPanel>
                 <Button
                     Content="Limpar filtros"
-                    Command="{Binding Action}"
-                    CommandParameter="ClearFilters"
+                    Command="{Binding ClearFiltersCommand}"
                     VerticalAlignment="Bottom" />
                 <CheckBox
                     Content="Visualizar em cards"
@@ -158,22 +157,18 @@
             Margin="0,16,0,0">
             <Button
                 Content="Abrir detalhes"
-                Command="{Binding Action}"
-                CommandParameter="Open"
+                Command="{Binding OpenJobCommand}"
                 Style="{StaticResource PrimaryButton}" />
             <Button
                 Content="Recuperar selecionada"
-                Command="{Binding Action}"
-                CommandParameter="Recover"
+                Command="{Binding RecoverCommand}"
                 Visibility="{Binding IsTrash, Converter={StaticResource BoolVisibility}}" />
             <Button
                 Content="Arquivar vagas do filtro"
-                Command="{Binding Action}"
-                CommandParameter="ArchiveFiltered" />
+                Command="{Binding ArchiveFilteredCommand}" />
             <Button
                 Content="Atualizar"
-                Command="{Binding Action}"
-                CommandParameter="Refresh" />
+                Command="{Binding RefreshCommand}" />
         </WrapPanel>
     </Grid>
 </UserControl>

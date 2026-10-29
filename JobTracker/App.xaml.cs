@@ -68,18 +68,22 @@ public partial class App : System.Windows.Application
             services.AddSingleton<IJobImageImporter>(provider => provider.GetRequiredService<ImagePreparationService>());
             services.AddSingleton<System.Net.Http.HttpClient>(_ => new(new System.Net.Http.SocketsHttpHandler
             {
-                AllowAutoRedirect = false, UseProxy = false, UseCookies = false,
-                ConnectTimeout = TimeSpan.FromSeconds(5), PooledConnectionLifetime = TimeSpan.FromMinutes(5)
-            }) { Timeout = Timeout.InfiniteTimeSpan });
+                AllowAutoRedirect = false,
+                UseProxy = false,
+                UseCookies = false,
+                ConnectTimeout = TimeSpan.FromSeconds(5),
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+            })
+            { Timeout = Timeout.InfiniteTimeSpan });
             services.AddSingleton<IAnalysisCache, AnalysisCache>();
             services.AddSingleton<OllamaClient>();
             services.AddSingleton<IOllamaConnection>(provider => provider.GetRequiredService<OllamaClient>());
             services.AddSingleton<IJobImageAnalyzer, OllamaJobImageAnalyzer>();
             services.AddTransient<JobImageAnalysisService>();
             services.AddTransient<ImageAnalysisSettings>();
-            services.AddTransient<OllamaSettingsViewModel>();
+            services.AddSingleton<OllamaSettingsViewModel>();
             services.AddSingleton<DesktopImageServices>();
-            services.AddTransient<ImageImportViewModel>();
+            services.AddSingleton<ImageImportViewModel>();
             services.AddTransient<JobTracker.Modules.JobAnalysis.Application.BatchImport.IScreenshotDiscovery, JobTracker.Modules.JobAnalysis.Infrastructure.FileSystem.ScreenshotDiscovery>();
             services.AddTransient<JobTracker.Modules.JobAnalysis.Application.BatchImport.IImportBatchStore, BatchImportStore>();
             services.AddTransient<JobTracker.Modules.JobAnalysis.Application.BatchImport.IBatchJobInterpreter, BatchJobInterpreter>();
@@ -90,13 +94,21 @@ public partial class App : System.Windows.Application
             services.AddTransient<JobTracker.Modules.JobAnalysis.Application.BatchImport.BatchImportCoordinator>();
             services.AddTransient<JobTracker.Modules.JobAnalysis.Application.BatchImport.BatchReviewService>();
             services.AddTransient<JobTracker.Modules.JobAnalysis.Application.BatchImport.BatchReportExport>();
-            services.AddTransient<BatchImportViewModel>();
+            services.AddSingleton<BatchImportViewModel>();
             services.AddTransient<TrackingService>();
             services.AddTransient<DataTransferService>();
             services.AddSingleton<ITransferFiles, TransferFiles>();
             services.AddSingleton<DesktopServices>();
             services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning).AddProvider(logs));
             services.AddSingleton(logs);
+            services.AddSingleton<UiOperationState>();
+            services.AddSingleton<JobWorkspace>();
+            services.AddSingleton<DashboardViewModel>();
+            services.AddSingleton<JobsViewModel>();
+            services.AddSingleton<BoardViewModel>();
+            services.AddSingleton<AgendaViewModel>();
+            services.AddSingleton<SettingsViewModel>();
+            services.AddSingleton<JobEditorViewModel>();
             services.AddSingleton<ShellViewModel>();
             services.AddTransient<MainWindow>();
             _services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });

@@ -10,7 +10,9 @@ using JobTracker.Modules.JobAnalysis.Application.Services;
 using JobTracker.Modules.JobAnalysis.Domain;
 using JobTracker.Presentation.Services;
 
-namespace JobTracker.Presentation;
+using JobTracker.Presentation.Commands;
+
+namespace JobTracker.Presentation.ViewModels;
 
 public sealed class ImageItemViewModel(JobImageInput input, BitmapSource thumbnail) : ObservableModel
 {
@@ -23,9 +25,34 @@ public sealed class ImageItemViewModel(JobImageInput input, BitmapSource thumbna
     public string Status { get => _status; set => Set(ref _status, value); }
 }
 
-public sealed class ImageImportViewModel(IJobImageImporter importer, JobImageAnalysisService analysis,
-    ImageLimits options, DesktopImageServices desktop) : ObservableModel
+public sealed class ImageImportViewModel : ObservableModel
 {
+    private readonly IJobImageImporter importer;
+    private readonly JobImageAnalysisService analysis;
+    private readonly ImageLimits options;
+    private readonly DesktopImageServices desktop;
+
+    public ImageImportViewModel(IJobImageImporter importer, JobImageAnalysisService analysis,
+        ImageLimits options, DesktopImageServices desktop, UiOperationState operations)
+    {
+        this.importer = importer; this.analysis = analysis; this.options = options; this.desktop = desktop;
+        AddCommand = operations.Command(nameof(AddCommand), ct => AddFilesAsync(null, ct));
+        PasteCommand = operations.Command(nameof(PasteCommand), PasteAsync);
+        PreviewCommand = operations.Command(nameof(PreviewCommand), PreviewAsync);
+        RemoveCommand = operations.Command(nameof(RemoveCommand), _ => { RemoveSelected(); return Task.CompletedTask; });
+        ClearCommand = operations.Command(nameof(ClearCommand), _ => { Clear(); return Task.CompletedTask; });
+        MoveUpCommand = operations.Command(nameof(MoveUpCommand), _ => { Move(-1); return Task.CompletedTask; });
+        MoveDownCommand = operations.Command(nameof(MoveDownCommand), _ => { Move(1); return Task.CompletedTask; });
+    }
+
+    public AsyncUiCommand AddCommand { get; }
+    public AsyncUiCommand PasteCommand { get; }
+    public AsyncUiCommand PreviewCommand { get; }
+    public AsyncUiCommand RemoveCommand { get; }
+    public AsyncUiCommand ClearCommand { get; }
+    public AsyncUiCommand MoveUpCommand { get; }
+    public AsyncUiCommand MoveDownCommand { get; }
+
     private bool _hasAnalysis, _analyzing;
     private long _operationVersion;
     private string _reviewText = "";

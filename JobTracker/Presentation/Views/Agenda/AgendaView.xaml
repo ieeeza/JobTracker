@@ -71,13 +71,11 @@
             Margin="0,16,0,0">
             <Button
                 Content="Concluir compromisso"
-                Command="{Binding Action}"
-                CommandParameter="CompleteAppointment"
+                Command="{Binding CompleteAppointmentCommand}"
                 Style="{StaticResource PrimaryButton}" />
             <Button
                 Content="Abrir vaga"
-                Command="{Binding Action}"
-                CommandParameter="OpenAppointment" />
+                Command="{Binding OpenAppointmentCommand}" />
             <TextBlock
                 Text="Agende entrevistas, prazos e follow-ups nos detalhes da vaga."
                 Style="{StaticResource Muted}"

@@ -29,7 +29,7 @@
             <StackPanel
                 Visibility="{Binding IsSingleJobForm, Converter={StaticResource BoolVisibility}}">
                 <TextBlock
-                    Text="{Binding ImportMessage}"
+                    Text="{Binding Operations.Error}"
                     Style="{StaticResource ImportFeedback}"
                     AutomationProperties.LiveSetting="Polite" />
                 <TextBlock
@@ -190,12 +190,10 @@
                             <WrapPanel>
                                 <Button
                                     Content="Verificar correspondências"
-                                    Command="{Binding Action}"
-                                    CommandParameter="CheckDuplicates" />
+                                    Command="{Binding CheckDuplicatesCommand}" />
                                 <Button
                                     Content="Abrir histórico selecionado"
-                                    Command="{Binding Action}"
-                                    CommandParameter="OpenDuplicate" />
+                                    Command="{Binding OpenDuplicateCommand}" />
                             </WrapPanel>
                         </StackPanel>
                     </Expander>
@@ -261,21 +259,17 @@
                             Margin="0,16,0,0">
                             <Button
                                 Content="_Salvar vaga"
-                                Command="{Binding Action}"
-                                CommandParameter="Save"
+                                Command="{Binding SaveCommand}"
                                 Style="{StaticResource PrimaryButton}" />
                             <Button
                                 Content="Copiar dados"
-                                Command="{Binding Action}"
-                                CommandParameter="Copy" />
+                                Command="{Binding CopyCommand}" />
                             <Button
                                 Content="Copiar URL"
-                                Command="{Binding Action}"
-                                CommandParameter="CopyUrl" />
+                                Command="{Binding CopyUrlCommand}" />
                             <Button
                                 Content="Mover para lixeira…"
-                                Command="{Binding Action}"
-                                CommandParameter="Delete"
+                                Command="{Binding DeleteCommand}"
                                 Visibility="{Binding IsExisting, Converter={StaticResource BoolVisibility}}" />
                         </WrapPanel>
                     </StackPanel>
@@ -327,8 +321,7 @@
                             MaxLength="10000" />
                         <Button
                             Content="Adicionar à agenda"
-                            Command="{Binding Action}"
-                            CommandParameter="Schedule"
+                            Command="{Binding ScheduleCommand}"
                             HorizontalAlignment="Left" />
                         <ItemsControl
                             ItemsSource="{Binding JobAppointments}">

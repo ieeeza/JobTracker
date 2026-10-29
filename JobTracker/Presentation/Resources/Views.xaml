@@ -1,29 +1,30 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="clr-namespace:JobTracker.Presentation.ViewModels"
     xmlns:views="clr-namespace:JobTracker.Presentation.Views">
     <DataTemplate
-        x:Key="DashboardView">
+        DataType="{x:Type vm:DashboardViewModel}">
         <views:DashboardView />
     </DataTemplate>
     <DataTemplate
-        x:Key="JobsView">
+        DataType="{x:Type vm:JobsViewModel}">
         <views:JobsView />
     </DataTemplate>
     <DataTemplate
-        x:Key="BoardView">
+        DataType="{x:Type vm:BoardViewModel}">
         <views:BoardView />
     </DataTemplate>
     <DataTemplate
-        x:Key="AgendaView">
+        DataType="{x:Type vm:AgendaViewModel}">
         <views:AgendaView />
     </DataTemplate>
     <DataTemplate
-        x:Key="SettingsView">
+        DataType="{x:Type vm:SettingsViewModel}">
         <views:SettingsView />
     </DataTemplate>
     <DataTemplate
-        x:Key="EditorView">
+        DataType="{x:Type vm:JobEditorViewModel}">
         <views:EditorView />
     </DataTemplate>
 </ResourceDictionary>

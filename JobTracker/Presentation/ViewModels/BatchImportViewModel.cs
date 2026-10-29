@@ -4,10 +4,11 @@ using JobTracker.Modules.JobApplications.Application;
 using JobTracker.Presentation.Services;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using JobTracker.Presentation.Commands;
 
 namespace JobTracker.Presentation.ViewModels;
 
-public sealed class BatchImportViewModel : ObservableModel
+public sealed class BatchImportViewModel : ObservableModel, IDisposable
 {
     private readonly IScreenshotDiscovery _discovery;
     private readonly IImportBatchStore _store;
@@ -22,24 +23,71 @@ public sealed class BatchImportViewModel : ObservableModel
     private BatchScreenshot? _selectedImage, _selectedSource;
     private DetectedJobGroup? _selectedGroup, _target;
     private BatchHistoryEntry? _selectedHistory;
-    private bool _busy, _indeterminate, _allowSimilar;
+    private bool _indeterminate, _allowSimilar;
+    private readonly UiOperationState _operations;
+    private readonly JobWorkspace _workspace;
     private int _completed, _total = 1;
     private EditorViewModel _editor = new();
     private bool _running;
     private string _progressSummary = "";
     public BatchImportViewModel(IScreenshotDiscovery discovery, IImportBatchStore store, BatchImportCoordinator coordinator,
-        BatchReviewService review, ImageAnalysisSettings settings, DesktopImageServices desktop, DesktopServices dialogs, BatchReportExport export)
+        BatchReviewService review, ImageAnalysisSettings settings, DesktopImageServices desktop, DesktopServices dialogs, BatchReportExport export, UiOperationState operations, JobWorkspace workspace)
     {
         _discovery = discovery; _store = store; _coordinator = coordinator; _review = review; _settings = settings; _desktop = desktop; _dialogs = dialogs; _export = export;
-        Action = new UiCommand(action => ActionRequested?.Invoke(action), () => !IsBusy);
+        _operations = operations; _workspace = workspace;
+        operations.PropertyChanged += OnOperationChanged;
+        SelectFolderCommand = operations.Command(nameof(SelectFolderCommand), ct => RunCommandAsync(SelectFolderOperationAsync, ct), "Cancelar importação");
+        DiscoverCommand = operations.Command(nameof(DiscoverCommand), ct => RunCommandAsync(DiscoverOperationAsync, ct), "Cancelar importação");
+        MoveUpCommand = operations.Command(nameof(MoveUpCommand), ct => RunCommandAsync(MoveUpOperationAsync, ct), "Cancelar importação");
+        MoveDownCommand = operations.Command(nameof(MoveDownCommand), ct => RunCommandAsync(MoveDownOperationAsync, ct), "Cancelar importação");
+        StartCommand = operations.Command(nameof(StartCommand), ct => RunCommandAsync(StartOperationAsync, ct), "Cancelar importação");
+        ExportCommand = operations.Command(nameof(ExportCommand), ct => RunCommandAsync(ExportOperationAsync, ct), "Cancelar importação");
+        RefreshHistoryCommand = operations.Command(nameof(RefreshHistoryCommand), ct => RunCommandAsync(RefreshHistoryOperationAsync, ct), "Cancelar importação");
+        OpenHistoryCommand = operations.Command(nameof(OpenHistoryCommand), ct => RunCommandAsync(OpenHistoryOperationAsync, ct), "Cancelar importação");
+        ReprocessCommand = operations.Command(nameof(ReprocessCommand), ct => RunCommandAsync(ReprocessOperationAsync, ct), "Cancelar importação");
+        SaveReviewCommand = operations.Command(nameof(SaveReviewCommand), ct => RunCommandAsync(SaveReviewOperationAsync, ct), "Cancelar importação");
+        SaveDraftCommand = operations.Command(nameof(SaveDraftCommand), ct => RunCommandAsync(SaveDraftOperationAsync, ct), "Cancelar importação");
+        DiscardCommand = operations.Command(nameof(DiscardCommand), ct => RunCommandAsync(DiscardOperationAsync, ct), "Cancelar importação");
+        MoveImageCommand = operations.Command(nameof(MoveImageCommand), ct => RunCommandAsync(MoveImageOperationAsync, ct), "Cancelar importação");
+        SplitCommand = operations.Command(nameof(SplitCommand), ct => RunCommandAsync(SplitOperationAsync, ct), "Cancelar importação");
+        MergeCommand = operations.Command(nameof(MergeCommand), ct => RunCommandAsync(MergeOperationAsync, ct), "Cancelar importação");
+        PreviewCommand = operations.Command(nameof(PreviewCommand), ct => RunCommandAsync(PreviewOperationAsync, ct), "Cancelar importação");
+        OpenJobCommand = operations.Command(nameof(OpenJobCommand), ct => RunCommandAsync(OpenJobOperationAsync, ct), "Cancelar importação");
     }
-    public event Action<string?>? ActionRequested;
+    public event Action<JobInfo>? OpenJobRequested;
     public event EventHandler? ReportReady;
-    public UiCommand Action { get; }
-    public bool IsBusy { get => _busy; set { Set(ref _busy, value); Raise(nameof(IsIdle)); Raise(nameof(CanReorder)); Action.Refresh(); } }
+    public AsyncUiCommand SelectFolderCommand { get; }
+    public AsyncUiCommand DiscoverCommand { get; }
+    public AsyncUiCommand MoveUpCommand { get; }
+    public AsyncUiCommand MoveDownCommand { get; }
+    public AsyncUiCommand StartCommand { get; }
+    public AsyncUiCommand ExportCommand { get; }
+    public AsyncUiCommand RefreshHistoryCommand { get; }
+    public AsyncUiCommand OpenHistoryCommand { get; }
+    public AsyncUiCommand ReprocessCommand { get; }
+    public AsyncUiCommand SaveReviewCommand { get; }
+    public AsyncUiCommand SaveDraftCommand { get; }
+    public AsyncUiCommand DiscardCommand { get; }
+    public AsyncUiCommand MoveImageCommand { get; }
+    public AsyncUiCommand SplitCommand { get; }
+    public AsyncUiCommand MergeCommand { get; }
+    public AsyncUiCommand PreviewCommand { get; }
+    public AsyncUiCommand OpenJobCommand { get; }
+    public bool IsBusy => _operations.IsBusy;
     public bool IsIdle => !IsBusy;
+    private void OnOperationChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(UiOperationState.IsBusy)) return;
+        Raise(nameof(IsBusy)); Raise(nameof(IsIdle)); Raise(nameof(CanReorder));
+    }
+
+    private async Task RunCommandAsync(Func<CancellationToken, Task> command, CancellationToken ct)
+    {
+        await command(ct);
+        _operations.Message = Status;
+    }
     public string Folder { get => _folder; set => Set(ref _folder, value); }
-    public string Status { get => _status; private set => Set(ref _status, value); }
+    public string Status { get => _status; private set { Set(ref _status, value); if (IsBusy) _operations.Message = value; } }
     public bool Indeterminate { get => _indeterminate; private set => Set(ref _indeterminate, value); }
     public int Completed { get => _completed; private set => Set(ref _completed, value); }
     public int Total { get => _total; private set => Set(ref _total, Math.Max(1, value)); }
@@ -75,60 +123,128 @@ public sealed class BatchImportViewModel : ObservableModel
         $"Imagens: {string.Join(", ", SourceImages.Select(i => i.Name))}\n{group.Evidence}";
     public string OriginalText => SelectedGroup?.Capture?.Text ?? SelectedGroup?.Evidence ?? "";
 
-    public async Task ExecuteAsync(string action, CancellationToken ct)
+    private async Task SelectFolderOperationAsync(CancellationToken ct)
     {
-        switch (action)
-        {
-            case "BatchFolder":
-                string? folder = _desktop.SelectFolder();
+        string? folder = _desktop.SelectFolder();
                 if (folder is null) return;
                 Folder = folder;
-                await DiscoverAsync(ct); break;
-            case "BatchDiscover": await DiscoverAsync(ct); break;
-            case "BatchUp": Move(-1); break;
-            case "BatchDown": Move(1); break;
-            case "BatchStart": await RunAsync(ct); break;
-            case "BatchExport":
-                var report = RequireBatch();
+                await DiscoverAsync(ct);
+
+    }
+
+    private async Task DiscoverOperationAsync(CancellationToken ct)
+    {
+        await DiscoverAsync(ct);
+
+    }
+
+    private Task MoveUpOperationAsync(CancellationToken ct)
+    {
+        Move(-1);
+        return Task.CompletedTask;
+    }
+
+    private Task MoveDownOperationAsync(CancellationToken ct)
+    {
+        Move(1);
+        return Task.CompletedTask;
+    }
+
+    private async Task StartOperationAsync(CancellationToken ct)
+    {
+        await RunAsync(ct);
+
+    }
+
+    private async Task ExportOperationAsync(CancellationToken ct)
+    {
+        var report = RequireBatch();
                 string? path = _dialogs.SavePath("json");
                 if (path is not null) { await _export.ExportAsync(report, path, ct); Status = "Relatório JSON exportado."; }
-                break;
-            case "BatchHistory": await RefreshHistoryAsync(ct); break;
-            case "BatchOpenHistory":
-                _batch = await _store.LoadAsync((SelectedHistory ?? throw new InvalidOperationException("Selecione um lote no histórico.")).Id, ct);
+
+    }
+
+    private async Task RefreshHistoryOperationAsync(CancellationToken ct)
+    {
+        await RefreshHistoryAsync(ct);
+
+    }
+
+    private async Task OpenHistoryOperationAsync(CancellationToken ct)
+    {
+        _batch = await _store.LoadAsync((SelectedHistory ?? throw new InvalidOperationException("Selecione um lote no histórico.")).Id, ct);
                 Folder = _batch.Folder;
                 LoadOptions(); Refresh(); Status = "Relatório persistido aberto. Retomar continua somente o trabalho incompleto; erros e pendências podem ser reprocessados explicitamente.";
-                ReportReady?.Invoke(this, EventArgs.Empty); break;
-            case "BatchReprocess":
-                var group = RequireGroup();
+                ReportReady?.Invoke(this, EventArgs.Empty);
+
+    }
+
+    private async Task ReprocessOperationAsync(CancellationToken ct)
+    {
+        var group = RequireGroup();
                 await _review.ReprocessAsync(RequireBatch(), group, ct);
-                await RunAsync(ct, group.Id); break;
-            case "BatchSaveReview":
-                var reviewed = RequireGroup();
+                await RunAsync(ct, group.Id);
+
+    }
+
+    private async Task SaveReviewOperationAsync(CancellationToken ct)
+    {
+        var reviewed = RequireGroup();
                 reviewed.Content = ReviewEditor.Content; reviewed.Url = ReviewEditor.Url;
                 await _review.SaveReviewedAsync(RequireBatch(), reviewed, AllowSimilar, ct);
-                Refresh(); Status = reviewed.Reason; break;
-            case "BatchSaveDraft":
-                var draft = RequireGroup();
+                await _workspace.ReloadAsync(CancellationToken.None);
+                Refresh(); Status = reviewed.Reason;
+
+    }
+
+    private async Task SaveDraftOperationAsync(CancellationToken ct)
+    {
+        var draft = RequireGroup();
                 draft.Content = ReviewEditor.Content; draft.Url = ReviewEditor.Url;
                 draft.Status = ImportItemStatus.NeedsReview; draft.ExtractionCompleted = true;
                 draft.Reason = "Correções preservadas no relatório; aguarda validação e salvamento no registro.";
-                await _store.SaveAsync(RequireBatch(), ct); Refresh(); Status = "Correções da pendência preservadas no histórico."; break;
-            case "BatchDiscard": await _review.DiscardAsync(RequireBatch(), RequireGroup(), ct); Refresh(); break;
-            case "BatchMove":
-                await _review.MoveAsync(RequireBatch(), RequireSource().Id, RequireTarget().Id, ct); Refresh(); break;
-            case "BatchSplit":
-                await _review.SplitAsync(RequireBatch(), RequireGroup().Id, RequireSource().Id, ct); Refresh(); break;
-            case "BatchMerge":
-                await _review.MergeAsync(RequireBatch(), RequireGroup().Id, RequireTarget().Id, ct); Refresh(); break;
-            case "BatchPreview":
-                var input = await _discovery.LoadVerifiedAsync(RequireSource(), ct);
-                await _desktop.PreviewAsync(input, ct); break;
-            case "BatchOpenJob":
-                if (RequireGroup().JobId is null && RequireGroup().ExistingJobId is null) throw new InvalidOperationException("Este grupo ainda não está vinculado a um registro.");
-                break;
-            default: throw new InvalidOperationException("Ação de lote desconhecida.");
-        }
+                await _store.SaveAsync(RequireBatch(), ct); Refresh(); Status = "Correções da pendência preservadas no histórico.";
+
+    }
+
+    private async Task DiscardOperationAsync(CancellationToken ct)
+    {
+        await _review.DiscardAsync(RequireBatch(), RequireGroup(), ct); Refresh();
+
+    }
+
+    private async Task MoveImageOperationAsync(CancellationToken ct)
+    {
+        await _review.MoveAsync(RequireBatch(), RequireSource().Id, RequireTarget().Id, ct); Refresh();
+
+    }
+
+    private async Task SplitOperationAsync(CancellationToken ct)
+    {
+        await _review.SplitAsync(RequireBatch(), RequireGroup().Id, RequireSource().Id, ct); Refresh();
+
+    }
+
+    private async Task MergeOperationAsync(CancellationToken ct)
+    {
+        await _review.MergeAsync(RequireBatch(), RequireGroup().Id, RequireTarget().Id, ct); Refresh();
+
+    }
+
+    private async Task PreviewOperationAsync(CancellationToken ct)
+    {
+        var input = await _discovery.LoadVerifiedAsync(RequireSource(), ct);
+                await _desktop.PreviewAsync(input, ct);
+
+    }
+
+    private async Task OpenJobOperationAsync(CancellationToken ct)
+    {
+        var id = RequireGroup().JobId ?? RequireGroup().ExistingJobId
+            ?? throw new InvalidOperationException("Este grupo ainda não está vinculado a um registro.");
+        await _workspace.ReloadAsync(ct);
+        OpenJobRequested?.Invoke(_workspace.Find(id));
+
     }
     public async Task InitializeAsync(CancellationToken ct)
     {
@@ -200,6 +316,7 @@ public sealed class BatchImportViewModel : ObservableModel
             Indeterminate = false; Refresh(); await RefreshHistoryAsync(CancellationToken.None);
             Status = batch.Status == ImportBatchStatus.Cancelled ? "Cancelada. Relatório parcial salvo; o lote pode ser retomado." : "Relatório atualizado. Confira os resultados abaixo.";
             ReportReady?.Invoke(this, EventArgs.Empty);
+            await _workspace.ReloadAsync(CancellationToken.None);
         }
     }
     private BatchImportOptions Options()
@@ -270,4 +387,5 @@ public sealed class BatchImportViewModel : ObservableModel
     private DetectedJobGroup RequireGroup() => SelectedGroup ?? throw new InvalidOperationException("Selecione um grupo no relatório.");
     private DetectedJobGroup RequireTarget() => Target ?? throw new InvalidOperationException("Selecione o grupo de destino.");
     private BatchScreenshot RequireSource() => SelectedSource ?? throw new InvalidOperationException("Selecione uma captura de origem.");
+    public void Dispose() => _operations.PropertyChanged -= OnOperationChanged;
 }

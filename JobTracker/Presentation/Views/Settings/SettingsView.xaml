@@ -104,13 +104,11 @@
                     <WrapPanel>
                         <Button
                             Content="Salvar configuração Ollama"
-                            Command="{Binding Action}"
-                            CommandParameter="OllamaSave"
+                            Command="{Binding Ollama.SaveCommand}"
                             Style="{StaticResource PrimaryButton}" />
                         <Button
                             Content="Verificar conexão"
-                            Command="{Binding Action}"
-                            CommandParameter="OllamaVerify" />
+                            Command="{Binding Ollama.VerifyCommand}" />
                     </WrapPanel>
                     <TextBlock
                         Text="{Binding Ollama.ConnectionStatus}"
@@ -135,8 +133,7 @@
                         IsChecked="{Binding ReduceMotion}" />
                     <Button
                         Content="Salvar preferências"
-                        Command="{Binding Action}"
-                        CommandParameter="SaveSettings"
+                        Command="{Binding SaveSettingsCommand}"
                         Style="{StaticResource PrimaryButton}"
                         HorizontalAlignment="Left" />
                 </StackPanel>
@@ -152,8 +149,7 @@
                         TextWrapping="Wrap" />
                     <Button
                         Content="Abrir diretório de dados e logs"
-                        Command="{Binding Action}"
-                        CommandParameter="Folder"
+                        Command="{Binding OpenFolderCommand}"
                         HorizontalAlignment="Left"
                         Margin="0,12,0,12" />
                     <TextBlock
@@ -163,20 +159,16 @@
                     <WrapPanel>
                         <Button
                             Content="Exportar JSON"
-                            Command="{Binding Action}"
-                            CommandParameter="ExportJson" />
+                            Command="{Binding ExportJsonCommand}" />
                         <Button
                             Content="Exportar CSV"
-                            Command="{Binding Action}"
-                            CommandParameter="ExportCsv" />
+                            Command="{Binding ExportCsvCommand}" />
                         <Button
                             Content="Importar JSON…"
-                            Command="{Binding Action}"
-                            CommandParameter="Import" />
+                            Command="{Binding ImportJsonCommand}" />
                         <Button
                             Content="Importar CSV…"
-                            Command="{Binding Action}"
-                            CommandParameter="ImportCsv" />
+                            Command="{Binding ImportCsvCommand}" />
                     </WrapPanel>
                     <Separator />
                     <TextBlock
@@ -186,12 +178,10 @@
                     <WrapPanel>
                         <Button
                             Content="Criar backup…"
-                            Command="{Binding Action}"
-                            CommandParameter="Backup" />
+                            Command="{Binding BackupCommand}" />
                         <Button
                             Content="Restaurar backup…"
-                            Command="{Binding Action}"
-                            CommandParameter="Restore" />
+                            Command="{Binding RestoreCommand}" />
                     </WrapPanel>
                 </StackPanel>
             </Border>

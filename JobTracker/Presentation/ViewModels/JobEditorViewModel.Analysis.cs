@@ -1,20 +1,21 @@
 using JobTracker.Modules.JobAnalysis.Domain;
-namespace JobTracker.Presentation;
+namespace JobTracker.Presentation.ViewModels;
 
-public sealed partial class ShellViewModel
+public sealed partial class JobEditorViewModel
 {
-    private string _importMessage = "", _analysisWarnings = "";
+    private string _analysisWarnings = "";
     private bool _focusEditorWhenIdle;
     private int _screenshotModeIndex;
     public int ScreenshotModeIndex
     {
         get => _screenshotModeIndex;
-        set { if (!IsBusy && value is 0 or 1 && Set(ref _screenshotModeIndex, value)) { Raise(nameof(IsFolderImport)); Raise(nameof(IsSingleJobForm)); } }
+        set { if (!IsBusy && value is 0 or 1 && Set(ref _screenshotModeIndex, value)) { Raise(nameof(IsFolderImport)); Raise(nameof(IsSingleJobForm)); SaveCommand.Refresh(); } }
     }
     public bool IsFolderImport => ScreenshotModeIndex == 1;
     public bool IsSingleJobForm => !IsFolderImport;
     public event EventHandler? EditorFocusRequested;
-    public string ImportMessage { get => _importMessage; private set => Set(ref _importMessage, value); }
+    public void RequestFocus() => EditorFocusRequested?.Invoke(this, EventArgs.Empty);
+
     public string AnalysisWarnings { get => _analysisWarnings; private set => Set(ref _analysisWarnings, value); }
     private void ApplyAnalysis(JobContent content, string url, IReadOnlyList<string> warnings)
     {
@@ -51,7 +52,7 @@ public sealed partial class ShellViewModel
 
     private void ResetImport()
     {
-        Images.Reset(); ImportMessage = AnalysisWarnings = "";
+        Images.Reset(); AnalysisWarnings = "";
         DuplicateMatches.Clear(); SelectedDuplicate = null;
         DuplicateSummary = "Confira correspondências após preencher empresa e cargo.";
     }

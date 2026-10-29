@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows.Input;
 
 namespace JobTracker.Presentation;
 
@@ -13,11 +12,4 @@ public abstract class ObservableModel : INotifyPropertyChanged
         field = value; Raise(name); return true;
     }
     protected void Raise([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-}
-public sealed class UiCommand(Action<string?> execute, Func<bool>? canExecute = null) : ICommand
-{
-    public event EventHandler? CanExecuteChanged;
-    public bool CanExecute(object? parameter) => canExecute?.Invoke() ?? true;
-    public void Execute(object? parameter) => execute(parameter as string);
-    public void Refresh() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }

@@ -1,6 +1,6 @@
 using System.Windows;
 using System.ComponentModel;
-using JobTracker.Presentation;
+using JobTracker.Presentation.ViewModels;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -20,14 +20,14 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         Loaded += OnLoaded;
         PreviewKeyDown += OnPreviewKeyDown;
-        viewModel.EditorFocusRequested += OnEditorFocusRequested;
+        viewModel.Editor.EditorFocusRequested += OnEditorFocusRequested;
     }
     private void OnEditorFocusRequested(object? sender, EventArgs e)
     {
         Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () =>
         {
-            if (_closing || !_viewModel.IsIdle || _viewModel.Page is not ("Nova vaga" or "Detalhes")) return;
-            string name = _viewModel.IsFolderImport ? "FolderInput" : "AddPrintsButton";
+            if (_closing || !_viewModel.Operations.IsIdle || !_viewModel.IsEditorPage) return;
+            string name = _viewModel.Editor.IsFolderImport ? "FolderInput" : "AddPrintsButton";
             if (FindInput(this, name) is { } input) { input.BringIntoView(); input.Focus(); }
         });
     }
@@ -43,11 +43,11 @@ public partial class MainWindow : Window
     }
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control || _viewModel.IsBusy ||
-            _viewModel.IsFolderImport || _viewModel.Page is not ("Nova vaga" or "Detalhes")) return;
+        if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control || _viewModel.Operations.IsBusy ||
+            _viewModel.Editor.IsFolderImport || !_viewModel.IsEditorPage) return;
         // Text editing keeps its normal paste command, including editable combo boxes.
         if (Keyboard.FocusedElement is TextBoxBase or PasswordBox or ComboBox { IsEditable: true }) return;
-        _viewModel.Action.Execute("ImagePaste");
+        _viewModel.Editor.Images.PasteCommand.Execute(null);
         e.Handled = true;
     }
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -57,7 +57,7 @@ public partial class MainWindow : Window
     }
     protected override void OnClosed(EventArgs e)
     {
-        _viewModel.EditorFocusRequested -= OnEditorFocusRequested;
+        _viewModel.Editor.EditorFocusRequested -= OnEditorFocusRequested;
         _viewModel.Dispose();
         base.OnClosed(e);
     }

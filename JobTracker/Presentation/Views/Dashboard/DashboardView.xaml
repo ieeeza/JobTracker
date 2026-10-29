@@ -71,8 +71,7 @@
                         MaxHeight="300" />
                     <Button
                         Content="Abrir vaga selecionada"
-                        Command="{Binding Action}"
-                        CommandParameter="Open"
+                        Command="{Binding OpenJobCommand}"
                         HorizontalAlignment="Left"
                         Margin="0,12,0,0" />
                 </StackPanel>

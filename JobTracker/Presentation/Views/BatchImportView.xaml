@@ -7,15 +7,15 @@
    <TextBlock Text="As vagas válidas são salvas automaticamente. Casos incertos ficam no relatório para revisão. Os originais permanecem na pasta escolhida." Style="{StaticResource Muted}"/>
    <TextBlock Text="Pasta de screenshots" Margin="0,12,0,0"/>
    <TextBox x:Name="FolderInput" Text="{Binding Folder, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Pasta de screenshots"/>
-   <WrapPanel><Button Content="Selecionar pasta" Command="{Binding Action}" CommandParameter="BatchFolder"/>
-    <Button Content="Ler pasta / atualizar arquivos" Command="{Binding Action}" CommandParameter="BatchDiscover"/></WrapPanel>
+   <WrapPanel><Button Content="Selecionar pasta" Command="{Binding SelectFolderCommand}"/>
+    <Button Content="Ler pasta / atualizar arquivos" Command="{Binding DiscoverCommand}"/></WrapPanel>
    <TextBlock Text="{Binding ImageCount}" Margin="0,6"/>
    <Expander Header="Conferir ordem dos screenshots" IsExpanded="True">
     <StackPanel>
      <ListBox ItemsSource="{Binding Images}" SelectedItem="{Binding SelectedImage}" DisplayMemberPath="Display" MaxHeight="200"
       VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="Ordem dos screenshots"/>
-     <WrapPanel><Button Content="↑ Mover acima" Command="{Binding Action}" CommandParameter="BatchUp" IsEnabled="{Binding CanReorder}"/>
-      <Button Content="↓ Mover abaixo" Command="{Binding Action}" CommandParameter="BatchDown" IsEnabled="{Binding CanReorder}"/></WrapPanel>
+     <WrapPanel><Button Content="↑ Mover acima" Command="{Binding MoveUpCommand}" IsEnabled="{Binding CanReorder}"/>
+      <Button Content="↓ Mover abaixo" Command="{Binding MoveDownCommand}" IsEnabled="{Binding CanReorder}"/></WrapPanel>
     </StackPanel>
    </Expander>
 
@@ -28,7 +28,7 @@
      <TextBlock Text="Todas as capturas são interpretadas pelo Qwen3-VL local, em janelas com sobreposição. As inferências locais são sequenciais." Style="{StaticResource Muted}"/>
     </StackPanel>
    </Expander>
-   <Button Content="Iniciar importação / retomar" Command="{Binding Action}" CommandParameter="BatchStart" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
+   <Button Content="Iniciar importação / retomar" Command="{Binding StartCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
    <ProgressBar IsIndeterminate="{Binding Indeterminate}" Minimum="0" Maximum="{Binding Total}" Value="{Binding Completed, Mode=OneWay}" Height="7" Margin="0,12"/>
    <TextBlock Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
    <ListBox ItemsSource="{Binding ProcessingGroups}" MaxHeight="180" Visibility="{Binding IsRunning, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="Vagas identificadas durante a importação"/>
@@ -37,29 +37,29 @@
   <Border Style="{StaticResource Card}"><StackPanel>
    <TextBlock Text="Histórico de importações" Style="{StaticResource Heading}"/>
    <ComboBox ItemsSource="{Binding History}" SelectedItem="{Binding SelectedHistory}" DisplayMemberPath="Display" AutomationProperties.Name="Histórico dos lotes"/>
-   <WrapPanel><Button Content="Atualizar histórico" Command="{Binding Action}" CommandParameter="BatchHistory"/>
-    <Button Content="Abrir relatório" Command="{Binding Action}" CommandParameter="BatchOpenHistory"/></WrapPanel>
+   <WrapPanel><Button Content="Atualizar histórico" Command="{Binding RefreshHistoryCommand}"/>
+    <Button Content="Abrir relatório" Command="{Binding OpenHistoryCommand}"/></WrapPanel>
   </StackPanel></Border>
   <Border x:Name="ReportPanel" Style="{StaticResource Card}"><StackPanel>
    <TextBlock Text="Relatório do lote" Style="{StaticResource Heading}"/>
-   <Button Content="Exportar relatório JSON" Command="{Binding Action}" CommandParameter="BatchExport" HorizontalAlignment="Left"/>
+   <Button Content="Exportar relatório JSON" Command="{Binding ExportCommand}" HorizontalAlignment="Left"/>
    <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,8" AutomationProperties.LiveSetting="Polite"/>
    <TextBlock Text="{Binding Notices}" Style="{StaticResource Muted}"/>
    <ComboBox ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" Width="240" HorizontalAlignment="Left" AutomationProperties.Name="Filtrar relatório"/>
    <ListBox ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}" DisplayMemberPath="Display" MaxHeight="260" AutomationProperties.Name="Vagas identificadas"/>
    <TextBlock Text="{Binding GroupDetails}" TextWrapping="Wrap" Margin="0,10"/>
-   <WrapPanel><Button Content="Abrir registro salvo / correspondência" Command="{Binding Action}" CommandParameter="BatchOpenJob"/>
-    <Button Content="Reprocessar somente este grupo" Command="{Binding Action}" CommandParameter="BatchReprocess"/>
-    <Button Content="Descartar pendência" Command="{Binding Action}" CommandParameter="BatchDiscard"/></WrapPanel>
+   <WrapPanel><Button Content="Abrir registro salvo / correspondência" Command="{Binding OpenJobCommand}"/>
+    <Button Content="Reprocessar somente este grupo" Command="{Binding ReprocessCommand}"/>
+    <Button Content="Descartar pendência" Command="{Binding DiscardCommand}"/></WrapPanel>
    <Expander Header="Screenshots e correção do agrupamento" IsExpanded="True">
     <StackPanel Margin="0,8">
      <ListBox ItemsSource="{Binding SourceImages}" SelectedItem="{Binding SelectedSource}" DisplayMemberPath="Display" MaxHeight="170" AutomationProperties.Name="Capturas do grupo"/>
-     <WrapPanel><Button Content="Visualizar captura selecionada" Command="{Binding Action}" CommandParameter="BatchPreview"/>
-      <Button Content="Separar a partir da captura selecionada" Command="{Binding Action}" CommandParameter="BatchSplit"/></WrapPanel>
+     <WrapPanel><Button Content="Visualizar captura selecionada" Command="{Binding PreviewCommand}"/>
+      <Button Content="Separar a partir da captura selecionada" Command="{Binding SplitCommand}"/></WrapPanel>
      <TextBlock Text="Grupo de destino para mover ou unir"/>
      <ComboBox ItemsSource="{Binding AllGroups}" SelectedItem="{Binding Target}" DisplayMemberPath="Display" AutomationProperties.Name="Grupo de destino"/>
-     <WrapPanel><Button Content="Mover captura para destino" Command="{Binding Action}" CommandParameter="BatchMove"/>
-      <Button Content="Unir este grupo ao destino" Command="{Binding Action}" CommandParameter="BatchMerge"/></WrapPanel>
+     <WrapPanel><Button Content="Mover captura para destino" Command="{Binding MoveImageCommand}"/>
+      <Button Content="Unir este grupo ao destino" Command="{Binding MergeCommand}"/></WrapPanel>
      <TextBlock Text="Reprocesse apenas os grupos afetados. Alterações de grupos salvos exigem revisão antes de atualizar o mesmo registro. Ao separar uma vaga já salva, salve primeiro o grupo de origem para liberar as capturas da nova vaga." Style="{StaticResource Muted}"/>
     </StackPanel>
    </Expander>
@@ -82,8 +82,8 @@
       <StackPanel Width="310"><TextBlock Text="Próxima ação"/><TextBox Text="{Binding ReviewEditor.NextAction, UpdateSourceTrigger=PropertyChanged}" MaxLength="500"/></StackPanel>
       <StackPanel Width="200"><TextBlock Text="Data da próxima ação"/><DatePicker SelectedDate="{Binding ReviewEditor.NextActionDate}"/></StackPanel></WrapPanel>
      <CheckBox Content="Conferi a correspondência: esta pendência é uma oportunidade diferente da possível duplicata" IsChecked="{Binding AllowSimilar}"/>
-     <WrapPanel><Button Content="Preservar correções no relatório" Command="{Binding Action}" CommandParameter="BatchSaveDraft"/>
-      <Button Content="Validar e salvar dados revisados" Command="{Binding Action}" CommandParameter="BatchSaveReview" Style="{StaticResource PrimaryButton}"/></WrapPanel>
+     <WrapPanel><Button Content="Preservar correções no relatório" Command="{Binding SaveDraftCommand}"/>
+      <Button Content="Validar e salvar dados revisados" Command="{Binding SaveReviewCommand}" Style="{StaticResource PrimaryButton}"/></WrapPanel>
     </StackPanel>
    </Expander>
    <Expander Header="Conteúdo histórico original"><TextBox Text="{Binding OriginalText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" Height="200" VerticalScrollBarVisibility="Auto"/></Expander>

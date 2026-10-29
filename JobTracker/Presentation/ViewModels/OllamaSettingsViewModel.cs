@@ -3,10 +3,31 @@ using JobTracker.Modules.JobAnalysis.Application.Interfaces;
 using JobTracker.Modules.JobAnalysis.Application.Models;
 using JobTracker.Modules.JobAnalysis.Application.Services;
 
+using JobTracker.Presentation.Commands;
+using JobTracker.Presentation.Services;
+
 namespace JobTracker.Presentation.ViewModels;
 
-public sealed class OllamaSettingsViewModel(ImageAnalysisSettings settings, IOllamaConnection connection) : ObservableModel
+public sealed class OllamaSettingsViewModel : ObservableModel
 {
+    private readonly ImageAnalysisSettings settings;
+    private readonly IOllamaConnection connection;
+    public OllamaSettingsViewModel(ImageAnalysisSettings settings, IOllamaConnection connection, UiOperationState operations)
+    {
+        this.settings = settings;
+        this.connection = connection;
+        VerifyCommand = operations.Command(nameof(VerifyCommand), ct => VerifyAsync(false, ct));
+        VerifySavedCommand = operations.Command(nameof(VerifySavedCommand), ct => VerifyAsync(true, ct));
+        SaveCommand = operations.Command(nameof(SaveCommand), async ct =>
+        {
+            await SaveAsync(ct);
+            operations.Message = "Configuração Ollama salva neste computador.";
+        });
+    }
+    public AsyncUiCommand VerifyCommand { get; }
+    public AsyncUiCommand VerifySavedCommand { get; }
+    public AsyncUiCommand SaveCommand { get; }
+
     private string _baseUrl = "http://127.0.0.1:11434", _model = "qwen3-vl:8b", _timeout = "300", _batchSize = "3", _maxImages = "30";
     private string _batchMegabytes = "24", _batchMegapixels = "24", _connectionStatus = "Conexão ainda não verificada.";
     private OllamaOptions _configuration = new();
@@ -50,7 +71,6 @@ public sealed class OllamaSettingsViewModel(ImageAnalysisSettings settings, IOll
         BatchMegapixels = (Configuration.MaxBatchPixels / 1000000m).ToString(CultureInfo.InvariantCulture);
         InvalidateConnection();
     }
-
 
     public async Task SaveAsync(CancellationToken ct)
     {
