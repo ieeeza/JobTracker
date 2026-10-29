@@ -1,6 +1,7 @@
 using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Threading;
+using JobTracker.Presentation.ViewModels;
 
 namespace JobTracker.Presentation;
 

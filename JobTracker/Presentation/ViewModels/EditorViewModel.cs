@@ -2,7 +2,7 @@ using JobTracker.Modules.JobAnalysis.Domain;
 using JobTracker.Modules.JobApplications.Application;
 using JobTracker.Modules.JobApplications.Domain;
 
-namespace JobTracker.Presentation;
+namespace JobTracker.Presentation.ViewModels;
 
 public sealed class EditorViewModel : ObservableModel
 {

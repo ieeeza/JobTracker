@@ -1,0 +1,87 @@
+<UserControl
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:JobTracker.Presentation"
+    x:Class="JobTracker.Presentation.Views.AgendaView">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition
+                Height="Auto" />
+            <RowDefinition
+                Height="Auto" />
+            <RowDefinition
+                Height="*" />
+            <RowDefinition
+                Height="Auto" />
+        </Grid.RowDefinitions>
+        <WrapPanel>
+            <StackPanel
+                Width="180">
+                <TextBlock
+                    Text="A partir de" />
+                <DatePicker
+                    SelectedDate="{Binding AgendaFrom}" />
+            </StackPanel>
+            <StackPanel
+                Width="180">
+                <TextBlock
+                    Text="Até" />
+                <DatePicker
+                    SelectedDate="{Binding AgendaTo}" />
+            </StackPanel>
+            <CheckBox
+                Content="Incluir concluídos"
+                IsChecked="{Binding IncludeCompleted}"
+                VerticalAlignment="Center" />
+        </WrapPanel>
+        <TextBlock
+            Grid.Row="1"
+            Text="{Binding AgendaLabel}"
+            Style="{StaticResource Muted}"
+            Margin="0,0,0,12" />
+        <DataGrid
+            Grid.Row="2"
+            ItemsSource="{Binding Agenda}"
+            SelectedItem="{Binding SelectedAppointment}">
+            <DataGrid.Columns>
+                <DataGridTextColumn
+                    Header="Data e horário local"
+                    Binding="{Binding LocalDateTime, StringFormat=dd/MM/yyyy HH:mm}"
+                    Width="180" />
+                <DataGridTextColumn
+                    Header="Compromisso"
+                    Binding="{Binding Title}"
+                    Width="*" />
+                <DataGridTextColumn
+                    Header="Vaga"
+                    Binding="{Binding JobTitle}"
+                    Width="*" />
+                <DataGridTextColumn
+                    Header="Tipo"
+                    Binding="{Binding Kind}"
+                    Width="120" />
+                <DataGridCheckBoxColumn
+                    Header="Concluído"
+                    Binding="{Binding Completed}"
+                    Width="100" />
+            </DataGrid.Columns>
+        </DataGrid>
+        <WrapPanel
+            Grid.Row="3"
+            Margin="0,16,0,0">
+            <Button
+                Content="Concluir compromisso"
+                Command="{Binding Action}"
+                CommandParameter="CompleteAppointment"
+                Style="{StaticResource PrimaryButton}" />
+            <Button
+                Content="Abrir vaga"
+                Command="{Binding Action}"
+                CommandParameter="OpenAppointment" />
+            <TextBlock
+                Text="Agende entrevistas, prazos e follow-ups nos detalhes da vaga."
+                Style="{StaticResource Muted}"
+                VerticalAlignment="Center" />
+        </WrapPanel>
+    </Grid>
+</UserControl>

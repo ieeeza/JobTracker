@@ -1,0 +1,113 @@
+<UserControl
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:JobTracker.Presentation"
+    x:Class="JobTracker.Presentation.Views.DashboardView">
+    <ScrollViewer
+        VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <ItemsControl
+                ItemsSource="{Binding Dashboard.Metrics}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid
+                            Columns="3" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock
+                                    Text="{Binding Label}"
+                                    Style="{StaticResource Muted}" />
+                                <TextBlock
+                                    Text="{Binding Value}"
+                                    FontSize="34"
+                                    FontWeight="SemiBold"
+                                    Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <WrapPanel>
+                <Border
+                    Style="{StaticResource Card}"
+                    Width="480">
+                    <StackPanel>
+                        <TextBlock
+                            Text="Candidaturas nos últimos 6 meses"
+                            Style="{StaticResource Heading}" />
+                        <ItemsControl
+                            ItemsSource="{Binding Dashboard.Months}"
+                            ItemTemplate="{StaticResource BarTemplate}" />
+                    </StackPanel>
+                </Border>
+                <Border
+                    Style="{StaticResource Card}"
+                    Width="480">
+                    <StackPanel>
+                        <TextBlock
+                            Text="Distribuição por status"
+                            Style="{StaticResource Heading}" />
+                        <ItemsControl
+                            ItemsSource="{Binding Dashboard.Distribution}"
+                            ItemTemplate="{StaticResource BarTemplate}" />
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+            <Border
+                Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock
+                        Text="Atividade recente"
+                        Style="{StaticResource Heading}" />
+                    <ListBox
+                        ItemsSource="{Binding Dashboard.Recent}"
+                        SelectedItem="{Binding SelectedJob}"
+                        ItemTemplate="{StaticResource JobCard}"
+                        MaxHeight="300" />
+                    <Button
+                        Content="Abrir vaga selecionada"
+                        Command="{Binding Action}"
+                        CommandParameter="Open"
+                        HorizontalAlignment="Left"
+                        Margin="0,12,0,0" />
+                </StackPanel>
+            </Border>
+            <Border
+                Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock
+                        Text="Próximas ações"
+                        Style="{StaticResource Heading}" />
+                    <ItemsControl
+                        ItemsSource="{Binding Dashboard.NextActions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel
+                                    Margin="0,5">
+                                    <TextBlock
+                                        Text="{Binding Content.Title}"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="{Binding Content.NextAction}"
+                                        TextWrapping="Wrap" />
+                                    <TextBlock
+                                        Text="{Binding Content.NextActionDate, StringFormat=dd/MM/yyyy}"
+                                        Style="{StaticResource Muted}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock
+                        Text="Adicione próximas ações nos detalhes de cada vaga. Sem registros, os indicadores permanecem zerados."
+                        Style="{StaticResource Muted}"
+                        Margin="0,12,0,0" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

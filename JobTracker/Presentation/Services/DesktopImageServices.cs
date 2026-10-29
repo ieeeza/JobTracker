@@ -6,7 +6,7 @@ using System.Windows.Media.Imaging;
 using JobTracker.Modules.JobAnalysis.Application.Models;
 using Microsoft.Win32;
 
-namespace JobTracker.Presentation;
+namespace JobTracker.Presentation.Services;
 
 public sealed class DesktopImageServices
 {

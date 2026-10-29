@@ -3,7 +3,7 @@ using JobTracker.Modules.JobAnalysis.Application.Interfaces;
 using JobTracker.Modules.JobAnalysis.Application.Models;
 using JobTracker.Modules.JobAnalysis.Application.Services;
 
-namespace JobTracker.Presentation;
+namespace JobTracker.Presentation.ViewModels;
 
 public sealed class OllamaSettingsViewModel(ImageAnalysisSettings settings, IOllamaConnection connection) : ObservableModel
 {

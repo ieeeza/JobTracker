@@ -8,6 +8,7 @@ using JobTracker.Modules.JobAnalysis.Application.Interfaces;
 using JobTracker.Modules.JobAnalysis.Application.Models;
 using JobTracker.Modules.JobAnalysis.Application.Services;
 using JobTracker.Modules.JobAnalysis.Domain;
+using JobTracker.Presentation.Services;
 
 namespace JobTracker.Presentation;
 

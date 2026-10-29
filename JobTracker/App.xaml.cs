@@ -16,6 +16,8 @@ using Microsoft.Extensions.Logging;
 using JobTracker.Modules.JobAnalysis.Application.Models;
 using JobTracker.Modules.JobAnalysis.Infrastructure.FileSystem;
 using JobTracker.Modules.JobAnalysis.Infrastructure.Ollama;
+using JobTracker.Presentation.ViewModels;
+using JobTracker.Presentation.Services;
 
 namespace JobTracker;
 

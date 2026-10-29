@@ -1,10 +1,11 @@
-using System.Collections.ObjectModel;
-using System.Globalization;
 using JobTracker.Modules.JobAnalysis.Application.BatchImport;
 using JobTracker.Modules.JobAnalysis.Application.Services;
 using JobTracker.Modules.JobApplications.Application;
+using JobTracker.Presentation.Services;
+using System.Collections.ObjectModel;
+using System.Globalization;
 
-namespace JobTracker.Presentation;
+namespace JobTracker.Presentation.ViewModels;
 
 public sealed class BatchImportViewModel : ObservableModel
 {

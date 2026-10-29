@@ -7,6 +7,8 @@ using JobTracker.Modules.JobAnalysis.Application.Services;
 using JobTracker.Modules.JobApplications.Application;
 using JobTracker.Modules.JobApplications.Domain;
 using JobTracker.Modules.Settings.Application;
+using JobTracker.Presentation.Services;
+using JobTracker.Presentation.ViewModels;
 using Microsoft.Extensions.Logging;
 
 namespace JobTracker.Presentation;

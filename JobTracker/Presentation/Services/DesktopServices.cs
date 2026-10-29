@@ -6,7 +6,7 @@ using System.Windows.Media;
 using Microsoft.Win32;
 using JobTracker.Modules.Settings.Application;
 
-namespace JobTracker.Presentation;
+namespace JobTracker.Presentation.Services;
 
 public sealed class DesktopServices(IDatabaseMaintenance database)
 {
