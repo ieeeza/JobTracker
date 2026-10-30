@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace JobTracker.Modules.JobAnalysis.Infrastructure.Ollama;
 
-public sealed class OllamaClient(HttpClient http, IAnalysisCache cache, ILogger<OllamaClient> logger) : IOllamaConnection, IDisposable
+public sealed partial class OllamaClient(HttpClient http, IAnalysisCache cache, ILogger<OllamaClient> logger) : IOllamaConnection, IDisposable
 {
     private readonly SemaphoreSlim _inference = new(1, 1);
     private const int MaximumResponseBytes = 2 * 1024 * 1024;
