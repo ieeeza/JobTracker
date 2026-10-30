@@ -19,7 +19,7 @@ public sealed class ShellViewModel : ObservableModel, IDisposable
         Dashboard = dashboard; Jobs = jobs; Board = board; Agenda = agenda; Settings = settings; Editor = editor;
         NavigateCommand = new UiCommand<PageDestination>(NavigateTo, () => Operations.IsIdle);
         CancelCommand = new UiCommand(operations.Cancel, () => Operations.IsBusy);
-        SaveCommand = new UiCommand(() => Editor.SaveCommand.Execute(null),
+        SaveCommand = new AsyncUiCommand(Editor.SaveCommand.ExecuteAsync,
             () => IsEditorPage && Editor.SaveCommand.CanExecute(null));
         RefreshCommand = operations.Command(nameof(RefreshCommand), ct => IsEditorPage ? Editor.RefreshAsync(ct) : workspace.ReloadAsync(ct));
         operations.PropertyChanged += OnOperationChanged;
@@ -43,7 +43,7 @@ public sealed class ShellViewModel : ObservableModel, IDisposable
     public JobEditorViewModel Editor { get; }
     public UiCommand<PageDestination> NavigateCommand { get; }
     public UiCommand CancelCommand { get; }
-    public UiCommand SaveCommand { get; }
+    public AsyncUiCommand SaveCommand { get; }
     public AsyncUiCommand RefreshCommand { get; }
     public PageDestination Page
     {
@@ -113,7 +113,7 @@ public sealed class ShellViewModel : ObservableModel, IDisposable
     private void OnEditorDeleted(object? sender, EventArgs e) { Jobs.IsTrash = false; Page = PageDestination.Jobs; }
     private async Task OnDatabaseRestoredAsync(CancellationToken ct)
     {
-        Editor.ResetAfterRestore();
+        Editor.NewEditor();
         await Editor.Batch.InitializeAsync(ct);
     }
     private void OnOperationChanged(object? sender, PropertyChangedEventArgs e)

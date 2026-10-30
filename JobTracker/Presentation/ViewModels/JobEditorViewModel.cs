@@ -128,8 +128,6 @@ public sealed partial class JobEditorViewModel : ObservableModel, IDisposable
         if (_editing is not null) Open(_editing);
     }
 
-    public void ResetAfterRestore() => NewEditor();
-
     private void OpenDuplicate()
     {
         var match = SelectedDuplicate ?? throw new InvalidOperationException("Selecione uma correspondência.");
