@@ -5,6 +5,7 @@ using System.IO;
 using System.Windows;
 using JobTracker.Modules.JobAnalysis.Application.Interfaces;
 using JobTracker.Modules.JobAnalysis.Application.Services;
+using JobTracker.Modules.JobAnalysis.Infraestructure;
 using JobTracker.Modules.JobAnalysis.Infraestructure.Persistence;
 using JobTracker.Modules.JobAnalysis.Infrastructure.Persistence;
 using JobTracker.Modules.JobApplications.Application;
@@ -86,6 +87,9 @@ public partial class App : System.Windows.Application
             services.AddSingleton<OllamaSettingsViewModel>();
             services.AddSingleton<DesktopImageServices>();
             services.AddSingleton<ImageImportViewModel>();
+            services.AddSingleton<IFilePickerService, PdfFilePickerService>();
+            services.AddTransient<IPdfTextExtractor, PdfPigTextExtractor>();
+            services.AddTransient<PdfImportViewModel>();
             services.AddTransient<JobTracker.Modules.JobAnalysis.Application.BatchImport.IScreenshotDiscovery, JobTracker.Modules.JobAnalysis.Infrastructure.FileSystem.ScreenshotDiscovery>();
             services.AddTransient<JobTracker.Modules.JobAnalysis.Application.BatchImport.IImportBatchStore, BatchImportStore>();
             services.AddTransient<JobTracker.Modules.JobAnalysis.Application.BatchImport.IBatchJobInterpreter, BatchJobInterpreter>();

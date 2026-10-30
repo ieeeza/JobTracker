@@ -1,0 +1,124 @@
+<UserControl
+    x:Class="JobTracker.Presentation.Views.Imports.PdfImportView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Importar PDF" Style="{StaticResource Heading}" />
+                <TextBlock
+                    Text="Extraia o texto e analise uma vaga com o Qwen local. Confira as sugestões antes de utilizá-las."
+                    Style="{StaticResource Muted}"
+                    Margin="0,0,0,16" />
+                <WrapPanel>
+                    <Button
+                        Content="Selecionar PDF"
+                        Command="{Binding SelectPdfCommand}" />
+                    <Button
+                        Content="Extrair texto"
+                        Command="{Binding ExtractPdfCommand}" />
+                    <Button
+                        Content="Analisar com IA"
+                        Command="{Binding AnalyzePdfCommand}" />
+                    <Button
+                        Content="Cancelar"
+                        Command="{Binding CancelPdfCommand}"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BoolVisibility}}" />
+                </WrapPanel>
+                <TextBlock Text="Documento" FontWeight="SemiBold" Margin="0,8,0,4" />
+                <TextBlock
+                    Text="{Binding SelectedPdfPath, TargetNullValue=Nenhum PDF selecionado.}"
+                    Style="{StaticResource Muted}" />
+                <ProgressBar
+                    IsIndeterminate="{Binding IsBusy}"
+                    Visibility="{Binding IsBusy, Converter={StaticResource BoolVisibility}}"
+                    Height="4"
+                    Margin="0,16,0,8"
+                    Foreground="{DynamicResource AccentBrush}"
+                    Background="{DynamicResource SurfaceBrush}"
+                    AutomationProperties.Name="Processamento do PDF em andamento" />
+                <TextBlock
+                    Text="{Binding StatusMessage}"
+                    Style="{StaticResource Muted}"
+                    Margin="0,12,0,0"
+                    AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Texto extraído" Style="{StaticResource Heading}" />
+                <TextBox
+                    Text="{Binding ExtractedText, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AcceptsReturn="True"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled"
+                    Height="220"
+                    AutomationProperties.Name="Texto original do PDF" />
+            </StackPanel>
+        </Border>
+
+        <Border
+            Style="{StaticResource Card}"
+            Visibility="{Binding HasAnalysis, Converter={StaticResource BoolVisibility}}">
+            <StackPanel>
+                <TextBlock Text="Dados identificados pela IA" Style="{StaticResource Heading}" />
+                <TextBlock
+                    Text="Pré-visualização para conferência. Campos vazios não foram identificados; nenhuma vaga é salva nesta etapa."
+                    Style="{StaticResource Muted}"
+                    Margin="0,0,0,16" />
+                <TextBlock Text="Cargo" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.Title, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AutomationProperties.Name="Cargo identificado no PDF" />
+                <TextBlock Text="Empresa" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.Company, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AutomationProperties.Name="Empresa identificada no PDF" />
+                <TextBlock Text="Localização" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.Location, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AutomationProperties.Name="Localização identificada no PDF" />
+                <TextBlock Text="Modalidade" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.WorkMode, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AutomationProperties.Name="Modalidade identificada no PDF" />
+                <TextBlock Text="Tecnologias" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.Technologies, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AutomationProperties.Name="Tecnologias identificadas no PDF" />
+                <TextBlock Text="Descrição" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.Description, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AcceptsReturn="True"
+                    VerticalScrollBarVisibility="Auto"
+                    Height="220"
+                    AutomationProperties.Name="Descrição identificada no PDF" />
+                <ItemsControl ItemsSource="{Binding AnalysisResult.Warnings}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock
+                                Text="{Binding}"
+                                Style="{StaticResource Muted}"
+                                Margin="0,4,0,0" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

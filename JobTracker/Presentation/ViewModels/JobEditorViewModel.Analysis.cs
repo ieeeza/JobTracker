@@ -9,10 +9,21 @@ public sealed partial class JobEditorViewModel
     public int ScreenshotModeIndex
     {
         get => _screenshotModeIndex;
-        set { if (!IsBusy && value is 0 or 1 && Set(ref _screenshotModeIndex, value)) { Raise(nameof(IsFolderImport)); Raise(nameof(IsSingleJobForm)); SaveCommand.Refresh(); } }
+        set
+        {
+            if (IsBusy || value is < 0 or > 2)
+                return;
+
+            if (Set(ref _screenshotModeIndex, value))
+            {
+                Raise(nameof(IsFolderImport));
+                Raise(nameof(IsSingleJobForm));
+                SaveCommand.Refresh();
+            }
+        }
     }
     public bool IsFolderImport => ScreenshotModeIndex == 1;
-    public bool IsSingleJobForm => !IsFolderImport;
+    public bool IsSingleJobForm => ScreenshotModeIndex == 0;
     public event EventHandler? EditorFocusRequested;
     public void RequestFocus() => EditorFocusRequested?.Invoke(this, EventArgs.Empty);
 

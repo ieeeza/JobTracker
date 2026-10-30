@@ -1,11 +1,10 @@
-using JobTracker.Presentation.ViewModels.Imports;
+using JobTracker.Modules.JobAnalysis.Application.Services;
 using JobTracker.Modules.JobAnalysis.Domain;
 using JobTracker.Modules.JobApplications.Application;
 using JobTracker.Modules.JobApplications.Domain;
 using JobTracker.Presentation.Commands;
 using JobTracker.Presentation.Services;
-
-using JobTracker.Modules.JobAnalysis.Application.Services;
+using JobTracker.Presentation.ViewModels.Imports;
 using Microsoft.Extensions.Logging;
 
 namespace JobTracker.Presentation.ViewModels;
@@ -31,17 +30,33 @@ public sealed partial class JobEditorViewModel : ObservableModel, IDisposable
     private EditorSnapshot CurrentEditor => new(Editor.Url, Editor.Content, Editor.Status, Editor.ApplicationDate, _canonical, Evidence, Images.Capture, Images.Revision);
     public bool HasUnsavedChanges => _savedEditor != CurrentEditor;
 
-    public JobEditorViewModel(TrackingService tracking, JobIdentifier identifier, DesktopServices desktop,
-        JobWorkspace workspace, UiOperationState operations, ILogger<JobEditorViewModel> logger,
-        ImageImportViewModel images, OllamaSettingsViewModel ollama, BatchImportViewModel batch)
+    public JobEditorViewModel(
+        TrackingService tracking,
+        JobIdentifier identifier,
+        DesktopServices desktop,
+        JobWorkspace workspace,
+        UiOperationState operations,
+        ILogger<JobEditorViewModel> logger,
+        ImageImportViewModel images,
+        OllamaSettingsViewModel ollama,
+        BatchImportViewModel batch,
+        PdfImportViewModel pdf)
     {
-        _tracking = tracking; _identifier = identifier; _desktop = desktop; _workspace = workspace;
-        _operations = operations; _logger = logger; Images = images; Ollama = ollama; Batch = batch;
+        _tracking = tracking;
+        _identifier = identifier;
+        _desktop = desktop;
+        _workspace = workspace;
+        _operations = operations;
+        _logger = logger;
+        Images = images;
+        Ollama = ollama;
+        Batch = batch;
+        Pdf = pdf;
         _editor.PropertyChanged += OnEditorPropertyChanged;
         workspace.Reloaded += OnReloaded;
         operations.PropertyChanged += OnOperationChanged;
         ollama.PropertyChanged += OnOllamaChanged;
-        SaveCommand = operations.Command(nameof(SaveCommand), SaveAsync, canExecute: () => !IsFolderImport);
+        SaveCommand = operations.Command(nameof(SaveCommand), SaveAsync, canExecute: () => IsSingleJobForm);
         AnalyzeImagesCommand = operations.Command(nameof(AnalyzeImagesCommand), AnalyzeImagesAsync, "Cancelar análise");
         CheckDuplicatesCommand = operations.Command(nameof(CheckDuplicatesCommand), RefreshDuplicatesAsync);
         OpenDuplicateCommand = operations.Command(nameof(OpenDuplicateCommand), _ => { OpenDuplicate(); return Task.CompletedTask; });
@@ -65,6 +80,7 @@ public sealed partial class JobEditorViewModel : ObservableModel, IDisposable
     public AsyncUiCommand DeleteCommand { get; }
     public AsyncUiCommand ScheduleCommand { get; }
     public BatchImportViewModel Batch { get; }
+    public PdfImportViewModel Pdf { get; }
     public UiOperationState Operations => _operations;
     public bool IsBusy => _operations.IsBusy;
     public bool IsIdle => _operations.IsIdle;

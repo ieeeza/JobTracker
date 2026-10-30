@@ -209,5 +209,8 @@
             <local:BatchImportView
                 DataContext="{Binding Batch}" />
         </TabItem>
+        <TabItem Header="Importar PDF">
+            <local:PdfImportView DataContext="{Binding Pdf}" />
+        </TabItem>
     </TabControl>
 </UserControl>
