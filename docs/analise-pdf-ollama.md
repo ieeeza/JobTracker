@@ -202,7 +202,7 @@ Validação manual em execução com banco exclusivo em
 - Tema claro e tema escuro, com a correção de contraste conferida após recompilar e reabrir o aplicativo.
 - Atalho Ctrl+S inativo na aba PDF e ausência do formulário de gravação nessa aba.
 
-## Limitações verificadas
+## Limitações verificadas na primeira validação
 
 O Ollama estava instalado, mas desligado. Foi iniciado temporariamente para a
 validação; `GET /api/tags` retornou `{"models":[]}`. Assim, o modelo
@@ -217,6 +217,52 @@ mas não foram substituídos por mocks ou resultados simulados.
 A análise visual e o lote não foram executados com um modelo real nesta tarefa.
 O cliente visual permanece intacto, exceto por `partial`, e seu teste WPF existente
 passou. Isso não substitui validação de inferência visual.
+
+## Retomada da validação em 30/10/2026
+
+Na retomada, o servidor local já estava acessível e `GET /api/tags` passou a
+listar `qwen3-vl:8b`, digest
+`9cf69da2b16d097f7def535917c4b55a95d6c7ee5700eb69ab86b01b3cfca487`.
+Nenhum modelo foi instalado ou substituído nesta retomada. O servidor existente
+foi preservado; uma tentativa de iniciá-lo retornou porta já ocupada.
+
+O build Debug da solução foi executado novamente, com zero erros e avisos.
+Não houve alteração de código nem criação ou modificação de testes nesta etapa.
+
+Foi usado novamente o banco isolado `artifacts/pdf-validation/jobtracker.db`
+e o PDF de Analista de Sistemas autorizado pelo usuário. As preferências desse
+banco continuavam com contexto de 16.384 tokens e `WaitForCompletion=true`.
+
+Resultados observados:
+
+- Seleção e extração do PDF funcionaram; a análise iniciou com o modelo real.
+- O cancelamento pela barra inferior restaurou os comandos e preservou o texto.
+- Uma segunda análise permaneceu em andamento por cerca de dez minutos, sem
+  resposta final. Foi cancelada manualmente; não foi um timeout do aplicativo.
+- `GET /api/ps` confirmou o modelo carregado com contexto de 16.384 tokens e
+  runner `llamacpp`. Durante a espera, a RTX 4060 Ti de 8 GB chegou a 100% de uso,
+  com aproximadamente 7,5 GB de memória ocupada. Esses dados indicam atividade,
+  mas não comprovam progresso útil da geração.
+- Duas chamadas diagnósticas diretas a `/api/chat`, sem dados do PDF, também
+  expiraram no cliente após 60 segundos: uma com JSON Schema e limite de 32
+  tokens, outra sem schema e limite de 16 tokens, ambas com `think=false`.
+  Isso demonstra que a falta de resposta também ocorreu fora do JobTracker;
+  não determina a causa interna do servidor nem exclui fila residual.
+- Consultas somente leitura ao banco isolado confirmaram zero registros em
+  `Jobs` e em `VisionAnalysisCache` após os cancelamentos.
+- A janela de validação foi fechada normalmente.
+
+O modelo continuou carregado e consumindo GPU mesmo após cancelar as chamadas.
+`ollama stop qwen3-vl:8b` retornou sucesso, mas o descarregamento não foi observado
+nas consultas seguintes. A tentativa de encerrar somente o runner iniciado durante
+esta validação (`llama-server`, PID 21496, início às 19:35:23) foi recusada pelo
+Windows com **Access is denied**. O servidor não foi encerrado à força.
+
+**Pendência atual:** reiniciar o Ollama com a permissão da sessão que o iniciou
+e repetir a análise. O modelo agora está instalado; a limitação atual é a falta
+de resposta final nesta execução local. A prévia preenchida, a qualidade dos seis
+campos e o cache hit continuam sem validação real. O cancelamento na interface foi
+validado, mas o término do processamento no servidor não foi confirmado.
 
 ## Commits e trabalho local preservado
 
