@@ -59,7 +59,9 @@ internal static class OllamaPdfExtractionContract
         foreach (var (name, limit) in new[] { ("title", 300), ("company", 200), ("description", 100000), ("location", 500) })
             properties[name] = new JsonObject
             {
-                ["type"] = new JsonArray("string", "null"), ["minLength"] = 1, ["maxLength"] = limit
+                ["type"] = new JsonArray("string", "null"),
+                ["minLength"] = 1,
+                ["maxLength"] = limit
             };
 
         properties["workModel"] = new JsonObject
@@ -69,15 +71,19 @@ internal static class OllamaPdfExtractionContract
         };
         properties["technologies"] = new JsonObject
         {
-            ["type"] = "array", ["maxItems"] = 100, ["uniqueItems"] = true,
+            ["type"] = "array",
+            ["maxItems"] = 100,
+            ["uniqueItems"] = true,
             ["items"] = new JsonObject { ["type"] = "string", ["minLength"] = 1, ["maxLength"] = 80 }
         };
         var required = new JsonArray();
         foreach (string name in properties.Select(property => property.Key)) required.Add(name);
         return new JsonObject
         {
-            ["type"] = "object", ["properties"] = properties,
-            ["required"] = required, ["additionalProperties"] = false
+            ["type"] = "object",
+            ["properties"] = properties,
+            ["required"] = required,
+            ["additionalProperties"] = false
         };
     }
 }
