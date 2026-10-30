@@ -12,7 +12,7 @@ using JobTracker.Presentation.Services;
 
 using JobTracker.Presentation.Commands;
 
-namespace JobTracker.Presentation.ViewModels;
+namespace JobTracker.Presentation.ViewModels.Imports;
 
 public sealed class ImageItemViewModel(JobImageInput input, BitmapSource thumbnail) : ObservableModel
 {

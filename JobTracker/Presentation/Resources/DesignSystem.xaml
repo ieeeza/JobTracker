@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:JobTracker.Presentation.Converters"
     xmlns:p="clr-namespace:JobTracker.Presentation">
     <SolidColorBrush
         x:Key="BackgroundBrush"
@@ -35,7 +36,7 @@
         x:Key="CardRadius">12</CornerRadius>
     <BooleanToVisibilityConverter
         x:Key="BoolVisibility" />
-    <p:NavigationSelectionConverter
+    <converters:NavigationSelectionConverter
         x:Key="NavigationSelection" />
     <Style
         x:Key="FocusRing">

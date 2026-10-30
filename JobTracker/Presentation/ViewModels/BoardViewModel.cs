@@ -4,9 +4,10 @@ using JobTracker.Modules.JobApplications.Domain;
 using JobTracker.Presentation.Commands;
 using JobTracker.Presentation.Services;
 
+using JobTracker.Modules.Dashboard.Application;
+
 namespace JobTracker.Presentation.ViewModels;
 
-using JobTracker.Modules.Dashboard.Application;
 
 public sealed class BoardViewModel : ObservableModel, IDisposable
 {

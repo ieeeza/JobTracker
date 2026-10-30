@@ -2,7 +2,7 @@ using System.Globalization;
 using JobTracker.Presentation.ViewModels;
 using System.Windows.Data;
 
-namespace JobTracker.Presentation;
+namespace JobTracker.Presentation.Converters;
 
 public sealed class NavigationSelectionConverter : IMultiValueConverter
 {

@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using JobTracker.Presentation.Commands;
 
-namespace JobTracker.Presentation.ViewModels;
+namespace JobTracker.Presentation.ViewModels.Imports;
 
 public sealed class BatchImportViewModel : ObservableModel, IDisposable
 {
@@ -36,23 +36,23 @@ public sealed class BatchImportViewModel : ObservableModel, IDisposable
         _discovery = discovery; _store = store; _coordinator = coordinator; _review = review; _settings = settings; _desktop = desktop; _dialogs = dialogs; _export = export;
         _operations = operations; _workspace = workspace;
         operations.PropertyChanged += OnOperationChanged;
-        SelectFolderCommand = operations.Command(nameof(SelectFolderCommand), ct => RunCommandAsync(SelectFolderOperationAsync, ct), "Cancelar importação");
-        DiscoverCommand = operations.Command(nameof(DiscoverCommand), ct => RunCommandAsync(DiscoverOperationAsync, ct), "Cancelar importação");
-        MoveUpCommand = operations.Command(nameof(MoveUpCommand), ct => RunCommandAsync(MoveUpOperationAsync, ct), "Cancelar importação");
-        MoveDownCommand = operations.Command(nameof(MoveDownCommand), ct => RunCommandAsync(MoveDownOperationAsync, ct), "Cancelar importação");
-        StartCommand = operations.Command(nameof(StartCommand), ct => RunCommandAsync(StartOperationAsync, ct), "Cancelar importação");
-        ExportCommand = operations.Command(nameof(ExportCommand), ct => RunCommandAsync(ExportOperationAsync, ct), "Cancelar importação");
-        RefreshHistoryCommand = operations.Command(nameof(RefreshHistoryCommand), ct => RunCommandAsync(RefreshHistoryOperationAsync, ct), "Cancelar importação");
-        OpenHistoryCommand = operations.Command(nameof(OpenHistoryCommand), ct => RunCommandAsync(OpenHistoryOperationAsync, ct), "Cancelar importação");
-        ReprocessCommand = operations.Command(nameof(ReprocessCommand), ct => RunCommandAsync(ReprocessOperationAsync, ct), "Cancelar importação");
-        SaveReviewCommand = operations.Command(nameof(SaveReviewCommand), ct => RunCommandAsync(SaveReviewOperationAsync, ct), "Cancelar importação");
-        SaveDraftCommand = operations.Command(nameof(SaveDraftCommand), ct => RunCommandAsync(SaveDraftOperationAsync, ct), "Cancelar importação");
-        DiscardCommand = operations.Command(nameof(DiscardCommand), ct => RunCommandAsync(DiscardOperationAsync, ct), "Cancelar importação");
-        MoveImageCommand = operations.Command(nameof(MoveImageCommand), ct => RunCommandAsync(MoveImageOperationAsync, ct), "Cancelar importação");
-        SplitCommand = operations.Command(nameof(SplitCommand), ct => RunCommandAsync(SplitOperationAsync, ct), "Cancelar importação");
-        MergeCommand = operations.Command(nameof(MergeCommand), ct => RunCommandAsync(MergeOperationAsync, ct), "Cancelar importação");
-        PreviewCommand = operations.Command(nameof(PreviewCommand), ct => RunCommandAsync(PreviewOperationAsync, ct), "Cancelar importação");
-        OpenJobCommand = operations.Command(nameof(OpenJobCommand), ct => RunCommandAsync(OpenJobOperationAsync, ct), "Cancelar importação");
+        SelectFolderCommand = operations.Command(nameof(SelectFolderCommand), ct => RunCommandAsync(SelectFolderAsync, ct), "Cancelar importação");
+        DiscoverCommand = operations.Command(nameof(DiscoverCommand), ct => RunCommandAsync(DiscoverAsync, ct), "Cancelar importação");
+        MoveUpCommand = operations.Command(nameof(MoveUpCommand), ct => RunCommandAsync(MoveUpAsync, ct), "Cancelar importação");
+        MoveDownCommand = operations.Command(nameof(MoveDownCommand), ct => RunCommandAsync(MoveDownAsync, ct), "Cancelar importação");
+        StartCommand = operations.Command(nameof(StartCommand), ct => RunCommandAsync(token => RunAsync(token), ct), "Cancelar importação");
+        ExportCommand = operations.Command(nameof(ExportCommand), ct => RunCommandAsync(ExportAsync, ct), "Cancelar importação");
+        RefreshHistoryCommand = operations.Command(nameof(RefreshHistoryCommand), ct => RunCommandAsync(RefreshHistoryAsync, ct), "Cancelar importação");
+        OpenHistoryCommand = operations.Command(nameof(OpenHistoryCommand), ct => RunCommandAsync(OpenHistoryAsync, ct), "Cancelar importação");
+        ReprocessCommand = operations.Command(nameof(ReprocessCommand), ct => RunCommandAsync(ReprocessAsync, ct), "Cancelar importação");
+        SaveReviewCommand = operations.Command(nameof(SaveReviewCommand), ct => RunCommandAsync(SaveReviewAsync, ct), "Cancelar importação");
+        SaveDraftCommand = operations.Command(nameof(SaveDraftCommand), ct => RunCommandAsync(SaveDraftAsync, ct), "Cancelar importação");
+        DiscardCommand = operations.Command(nameof(DiscardCommand), ct => RunCommandAsync(DiscardAsync, ct), "Cancelar importação");
+        MoveImageCommand = operations.Command(nameof(MoveImageCommand), ct => RunCommandAsync(MoveImageAsync, ct), "Cancelar importação");
+        SplitCommand = operations.Command(nameof(SplitCommand), ct => RunCommandAsync(SplitAsync, ct), "Cancelar importação");
+        MergeCommand = operations.Command(nameof(MergeCommand), ct => RunCommandAsync(MergeAsync, ct), "Cancelar importação");
+        PreviewCommand = operations.Command(nameof(PreviewCommand), ct => RunCommandAsync(PreviewAsync, ct), "Cancelar importação");
+        OpenJobCommand = operations.Command(nameof(OpenJobCommand), ct => RunCommandAsync(OpenJobAsync, ct), "Cancelar importação");
     }
     public event Action<JobInfo>? OpenJobRequested;
     public event EventHandler? ReportReady;
@@ -123,128 +123,98 @@ public sealed class BatchImportViewModel : ObservableModel, IDisposable
         $"Imagens: {string.Join(", ", SourceImages.Select(i => i.Name))}\n{group.Evidence}";
     public string OriginalText => SelectedGroup?.Capture?.Text ?? SelectedGroup?.Evidence ?? "";
 
-    private async Task SelectFolderOperationAsync(CancellationToken ct)
+    private async Task SelectFolderAsync(CancellationToken ct)
     {
         string? folder = _desktop.SelectFolder();
-                if (folder is null) return;
-                Folder = folder;
-                await DiscoverAsync(ct);
-
-    }
-
-    private async Task DiscoverOperationAsync(CancellationToken ct)
-    {
+        if (folder is null) return;
+        Folder = folder;
         await DiscoverAsync(ct);
-
     }
 
-    private Task MoveUpOperationAsync(CancellationToken ct)
+    private Task MoveUpAsync(CancellationToken ct)
     {
         Move(-1);
         return Task.CompletedTask;
     }
 
-    private Task MoveDownOperationAsync(CancellationToken ct)
+    private Task MoveDownAsync(CancellationToken ct)
     {
         Move(1);
         return Task.CompletedTask;
     }
 
-    private async Task StartOperationAsync(CancellationToken ct)
-    {
-        await RunAsync(ct);
-
-    }
-
-    private async Task ExportOperationAsync(CancellationToken ct)
+    private async Task ExportAsync(CancellationToken ct)
     {
         var report = RequireBatch();
-                string? path = _dialogs.SavePath("json");
-                if (path is not null) { await _export.ExportAsync(report, path, ct); Status = "Relatório JSON exportado."; }
-
+        string? path = _dialogs.SavePath("json");
+        if (path is not null) { await _export.ExportAsync(report, path, ct); Status = "Relatório JSON exportado."; }
     }
 
-    private async Task RefreshHistoryOperationAsync(CancellationToken ct)
-    {
-        await RefreshHistoryAsync(ct);
-
-    }
-
-    private async Task OpenHistoryOperationAsync(CancellationToken ct)
+    private async Task OpenHistoryAsync(CancellationToken ct)
     {
         _batch = await _store.LoadAsync((SelectedHistory ?? throw new InvalidOperationException("Selecione um lote no histórico.")).Id, ct);
-                Folder = _batch.Folder;
-                LoadOptions(); Refresh(); Status = "Relatório persistido aberto. Retomar continua somente o trabalho incompleto; erros e pendências podem ser reprocessados explicitamente.";
-                ReportReady?.Invoke(this, EventArgs.Empty);
-
+        Folder = _batch.Folder;
+        LoadOptions(); Refresh(); Status = "Relatório persistido aberto. Retomar continua somente o trabalho incompleto; erros e pendências podem ser reprocessados explicitamente.";
+        ReportReady?.Invoke(this, EventArgs.Empty);
     }
 
-    private async Task ReprocessOperationAsync(CancellationToken ct)
+    private async Task ReprocessAsync(CancellationToken ct)
     {
         var group = RequireGroup();
-                await _review.ReprocessAsync(RequireBatch(), group, ct);
-                await RunAsync(ct, group.Id);
-
+        await _review.ReprocessAsync(RequireBatch(), group, ct);
+        await RunAsync(ct, group.Id);
     }
 
-    private async Task SaveReviewOperationAsync(CancellationToken ct)
+    private async Task SaveReviewAsync(CancellationToken ct)
     {
         var reviewed = RequireGroup();
-                reviewed.Content = ReviewEditor.Content; reviewed.Url = ReviewEditor.Url;
-                await _review.SaveReviewedAsync(RequireBatch(), reviewed, AllowSimilar, ct);
-                await _workspace.ReloadAsync(CancellationToken.None);
-                Refresh(); Status = reviewed.Reason;
-
+        reviewed.Content = ReviewEditor.Content; reviewed.Url = ReviewEditor.Url;
+        await _review.SaveReviewedAsync(RequireBatch(), reviewed, AllowSimilar, ct);
+        await _workspace.ReloadAsync(CancellationToken.None);
+        Refresh(); Status = reviewed.Reason;
     }
 
-    private async Task SaveDraftOperationAsync(CancellationToken ct)
+    private async Task SaveDraftAsync(CancellationToken ct)
     {
         var draft = RequireGroup();
-                draft.Content = ReviewEditor.Content; draft.Url = ReviewEditor.Url;
-                draft.Status = ImportItemStatus.NeedsReview; draft.ExtractionCompleted = true;
-                draft.Reason = "Correções preservadas no relatório; aguarda validação e salvamento no registro.";
-                await _store.SaveAsync(RequireBatch(), ct); Refresh(); Status = "Correções da pendência preservadas no histórico.";
-
+        draft.Content = ReviewEditor.Content; draft.Url = ReviewEditor.Url;
+        draft.Status = ImportItemStatus.NeedsReview; draft.ExtractionCompleted = true;
+        draft.Reason = "Correções preservadas no relatório; aguarda validação e salvamento no registro.";
+        await _store.SaveAsync(RequireBatch(), ct); Refresh(); Status = "Correções da pendência preservadas no histórico.";
     }
 
-    private async Task DiscardOperationAsync(CancellationToken ct)
+    private async Task DiscardAsync(CancellationToken ct)
     {
         await _review.DiscardAsync(RequireBatch(), RequireGroup(), ct); Refresh();
-
     }
 
-    private async Task MoveImageOperationAsync(CancellationToken ct)
+    private async Task MoveImageAsync(CancellationToken ct)
     {
         await _review.MoveAsync(RequireBatch(), RequireSource().Id, RequireTarget().Id, ct); Refresh();
-
     }
 
-    private async Task SplitOperationAsync(CancellationToken ct)
+    private async Task SplitAsync(CancellationToken ct)
     {
         await _review.SplitAsync(RequireBatch(), RequireGroup().Id, RequireSource().Id, ct); Refresh();
-
     }
 
-    private async Task MergeOperationAsync(CancellationToken ct)
+    private async Task MergeAsync(CancellationToken ct)
     {
         await _review.MergeAsync(RequireBatch(), RequireGroup().Id, RequireTarget().Id, ct); Refresh();
-
     }
 
-    private async Task PreviewOperationAsync(CancellationToken ct)
+    private async Task PreviewAsync(CancellationToken ct)
     {
         var input = await _discovery.LoadVerifiedAsync(RequireSource(), ct);
-                await _desktop.PreviewAsync(input, ct);
-
+        await _desktop.PreviewAsync(input, ct);
     }
 
-    private async Task OpenJobOperationAsync(CancellationToken ct)
+    private async Task OpenJobAsync(CancellationToken ct)
     {
         var id = RequireGroup().JobId ?? RequireGroup().ExistingJobId
             ?? throw new InvalidOperationException("Este grupo ainda não está vinculado a um registro.");
         await _workspace.ReloadAsync(ct);
         OpenJobRequested?.Invoke(_workspace.Find(id));
-
     }
     public async Task InitializeAsync(CancellationToken ct)
     {

@@ -1,8 +1,9 @@
+using JobTracker.Presentation.ViewModels.Imports;
 using System.Windows;
 using JobTracker.Presentation.ViewModels;
 using System.Windows.Controls;
 
-namespace JobTracker.Presentation;
+namespace JobTracker.Presentation.Views.Imports;
 
 public partial class ImageImportView : UserControl
 {

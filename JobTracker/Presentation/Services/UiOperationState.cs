@@ -25,7 +25,7 @@ public sealed class UiOperationState(ILogger<UiOperationState> logger) : Observa
     public AsyncUiCommand Command(string name, Func<CancellationToken, Task> execute,
         string cancelLabel = "Cancelar", Func<bool>? canExecute = null)
     {
-        var command = new AsyncUiCommand(this, name, execute, cancelLabel, canExecute);
+        var command = new AsyncUiCommand(() => RunAsync(name, execute, cancelLabel), () => IsIdle && (canExecute?.Invoke() ?? true));
         _commands.Add(command);
         return command;
     }

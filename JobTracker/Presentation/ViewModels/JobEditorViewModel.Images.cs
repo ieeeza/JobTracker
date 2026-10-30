@@ -1,8 +1,8 @@
+using JobTracker.Presentation.ViewModels.Imports;
 using System.Collections.ObjectModel;
 using JobTracker.Modules.JobApplications.Application;
 using JobTracker.Modules.JobAnalysis.Application.Models;
 using Microsoft.Extensions.Logging;
-using JobTracker.Presentation.ViewModels;
 
 namespace JobTracker.Presentation.ViewModels;
 

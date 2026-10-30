@@ -1,13 +1,15 @@
-using System.Collections.ObjectModel;
+using JobTracker.Presentation.ViewModels.Imports;
+using JobTracker.Modules.JobAnalysis.Domain;
 using JobTracker.Modules.JobApplications.Application;
 using JobTracker.Modules.JobApplications.Domain;
 using JobTracker.Presentation.Commands;
 using JobTracker.Presentation.Services;
 
-namespace JobTracker.Presentation.ViewModels;
-
 using JobTracker.Modules.JobAnalysis.Application.Services;
 using Microsoft.Extensions.Logging;
+
+namespace JobTracker.Presentation.ViewModels;
+
 
 public sealed partial class JobEditorViewModel : ObservableModel, IDisposable
 {
@@ -25,7 +27,7 @@ public sealed partial class JobEditorViewModel : ObservableModel, IDisposable
     private string _appointmentTitle = "Entrevista", _appointmentTime = "09:00", _appointmentKind = "Entrevista", _appointmentNotes = "";
     private DateTime? _appointmentDate = DateTime.Today;
 
-    private sealed record EditorSnapshot(string Url, JobTracker.Modules.JobAnalysis.Domain.JobContent Content, ApplicationStatus Status, DateTime? ApplicationDate, string? Canonical, string Evidence, JobTracker.Modules.JobAnalysis.Domain.OcrCapture? Capture, int ImageRevision);
+    private sealed record EditorSnapshot(string Url, JobContent Content, ApplicationStatus Status, DateTime? ApplicationDate, string? Canonical, string Evidence, OcrCapture? Capture, int ImageRevision);
     private EditorSnapshot CurrentEditor => new(Editor.Url, Editor.Content, Editor.Status, Editor.ApplicationDate, _canonical, Evidence, Images.Capture, Images.Revision);
     public bool HasUnsavedChanges => _savedEditor != CurrentEditor;
 

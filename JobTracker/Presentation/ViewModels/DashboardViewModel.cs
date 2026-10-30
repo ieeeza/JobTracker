@@ -1,6 +1,5 @@
-using System.Collections.ObjectModel;
+using JobTracker.Modules.Dashboard.Application;
 using JobTracker.Modules.JobApplications.Application;
-using JobTracker.Modules.JobApplications.Domain;
 using JobTracker.Presentation.Commands;
 using JobTracker.Presentation.Services;
 
@@ -24,10 +23,10 @@ public sealed class DashboardViewModel : ObservableModel, IDisposable
     public event Action<JobInfo>? OpenRequested;
     public AsyncUiCommand OpenJobCommand { get; }
     public JobInfo? SelectedJob { get => _selectedJob; set => Set(ref _selectedJob, value); }
-    public JobTracker.Modules.Dashboard.Application.DashboardSummary Dashboard { get; private set; } = JobTracker.Modules.Dashboard.Application.DashboardSummary.From([]);
+    public DashboardSummary Dashboard { get; private set; } = DashboardSummary.From([]);
     private void OnReloaded(object? sender, EventArgs e)
     {
-        Dashboard = JobTracker.Modules.Dashboard.Application.DashboardSummary.From(_workspace.All);
+        Dashboard = DashboardSummary.From(_workspace.All);
         SelectedJob = _workspace.All.SingleOrDefault(job => job.Id == SelectedJob?.Id);
         Raise(nameof(Dashboard));
     }

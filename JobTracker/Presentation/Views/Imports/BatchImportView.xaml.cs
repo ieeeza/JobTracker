@@ -1,9 +1,10 @@
+using JobTracker.Presentation.ViewModels.Imports;
 using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Threading;
 using JobTracker.Presentation.ViewModels;
 
-namespace JobTracker.Presentation;
+namespace JobTracker.Presentation.Views.Imports;
 
 public partial class BatchImportView : UserControl
 {

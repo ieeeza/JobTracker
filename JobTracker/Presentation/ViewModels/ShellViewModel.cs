@@ -27,6 +27,7 @@ public sealed class ShellViewModel : ObservableModel, IDisposable
         dashboard.OpenRequested += OpenJob;
         agenda.OpenRequested += OpenJob;
         editor.Batch.OpenJobRequested += OpenJob;
+        editor.SaveCommand.CanExecuteChanged += OnEditorSaveCanExecuteChanged;
         editor.Opened += OnEditorOpened;
         editor.Created += OnEditorCreated;
         editor.Deleted += OnEditorDeleted;
@@ -106,6 +107,7 @@ public sealed class ShellViewModel : ObservableModel, IDisposable
         if (IsEditorPage && !Editor.ConfirmDiscard()) return;
         Editor.Open(job);
     }
+    private void OnEditorSaveCanExecuteChanged(object? sender, EventArgs e) => SaveCommand.Refresh();
     private void OnEditorOpened(object? sender, EventArgs e) => Page = PageDestination.Details;
     private void OnEditorCreated(object? sender, EventArgs e) => Page = PageDestination.NewJob;
     private void OnEditorDeleted(object? sender, EventArgs e) { Jobs.IsTrash = false; Page = PageDestination.Jobs; }
@@ -131,6 +133,7 @@ public sealed class ShellViewModel : ObservableModel, IDisposable
         Operations.PropertyChanged -= OnOperationChanged;
         Jobs.OpenRequested -= OpenJob; Dashboard.OpenRequested -= OpenJob; Agenda.OpenRequested -= OpenJob;
         Editor.Batch.OpenJobRequested -= OpenJob;
+        Editor.SaveCommand.CanExecuteChanged -= OnEditorSaveCanExecuteChanged;
         Editor.Opened -= OnEditorOpened; Editor.Created -= OnEditorCreated; Editor.Deleted -= OnEditorDeleted;
         Settings.DatabaseRestored -= OnDatabaseRestoredAsync;
     }
