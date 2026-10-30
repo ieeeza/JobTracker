@@ -81,6 +81,7 @@ public partial class App : System.Windows.Application
             services.AddSingleton<IOllamaConnection>(provider => provider.GetRequiredService<OllamaClient>());
             services.AddSingleton<IJobImageAnalyzer, OllamaJobImageAnalyzer>();
             services.AddTransient<JobImageAnalysisService>();
+            services.AddTransient<IJobPdfAnalyzer, OllamaJobPdfAnalyzer>();
             services.AddTransient<ImageAnalysisSettings>();
             services.AddSingleton<OllamaSettingsViewModel>();
             services.AddSingleton<DesktopImageServices>();
