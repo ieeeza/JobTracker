@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
@@ -14,21 +15,50 @@ public sealed partial class OllamaClient
     internal async Task<OllamaJobData> ExtractPdfAsync(
         string text, OllamaOptions options, CancellationToken cancellationToken)
     {
-        options = options.ForPdfAnalysis();
-        int contextTokens = OllamaPdfContextBudget.SelectContextTokens(text, options);
-
-        await _inference.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var total = Stopwatch.StartNew();
+        string operation = Guid.NewGuid().ToString("N");
+        string outcome = "failed";
+        bool acquired = false;
         try
         {
-            string digest = await ModelIdentityAsync(options, cancellationToken, requiresVision: false).ConfigureAwait(false);
-            string cacheKey = PdfCacheKey(text, digest, options, contextTokens);
+            options = options.ForPdfAnalysis();
+            var budget = OllamaPdfContextBudget.Estimate(text);
+            logger.LogInformation("Ollama PDF {Operation}: modelo {Model}; bytes {TextBytes}; texto {TextTokens}; instruções {SystemTokens}; prefixo {PrefixTokens}; schema nas mensagens {SchemaTokens}; enquadramento {MessageTokens}; saída reservada {OutputTokens}; margem {SafetyTokens}; total estimado {RequiredTokens}; máximo {MaximumContext}",
+                operation, options.Model, budget.TextBytes, budget.TextTokens, budget.SystemPromptTokens, budget.PrefixTokens,
+                budget.SchemaPromptTokens, OllamaPdfContextBudget.MessageOverheadTokens, budget.OutputTokens, budget.SafetyTokens,
+                budget.RequiredTokens, options.MaxContextTokens);
+            int contextTokens = budget.SelectContextTokens(options);
+            var generationOptions = new OllamaGenerationOptions(contextTokens)
+            {
+                NumPredict = checked(contextTokens - (int)budget.InputTokens)
+            };
+            var waiting = Stopwatch.StartNew();
+            try
+            {
+                await _inference.WaitAsync(cancellationToken).ConfigureAwait(false);
+                acquired = true;
+            }
+            finally
+            {
+                logger.LogInformation("Ollama PDF {Operation}: contexto {ContextTokens}; limite de geração {OutputLimit}; espera por inferência {WaitSeconds}s",
+                    operation, contextTokens, generationOptions.NumPredict, waiting.Elapsed.TotalSeconds);
+            }
+            var verification = Stopwatch.StartNew();
+            string digest;
+            try { digest = await ModelIdentityAsync(options, cancellationToken, requiresVision: false).ConfigureAwait(false); }
+            finally { logger.LogInformation("Ollama PDF {Operation}: verificação do modelo {VerificationSeconds}s", operation, verification.Elapsed.TotalSeconds); }
+            string cacheKey = PdfCacheKey(text, digest, options, generationOptions);
             if (await cache.ReadAsync(cacheKey, cancellationToken).ConfigureAwait(false) is { } saved)
-                return OllamaResultMapper.ParsePdf(saved, cancellationToken);
+            {
+                var cached = OllamaResultMapper.ParsePdf(saved, cancellationToken);
+                outcome = "cache_hit";
+                return cached;
+            }
 
             var body = new OllamaChatRequest(options.Model,
                 [new("system", OllamaPdfExtractionContract.SystemPrompt),
                  new("user", OllamaPdfExtractionContract.UserPrefix + text)],
-                OllamaExtractionContract.Schema, new OllamaGenerationOptions(contextTokens))
+                OllamaExtractionContract.Schema, generationOptions)
             {
                 KeepAliveSeconds = options.KeepAliveSeconds
             };
@@ -36,8 +66,22 @@ public sealed partial class OllamaClient
             {
                 Content = JsonContent.Create(body, options: OllamaExtractionContract.JsonOptions)
             };
-            var response = await SendAsync<OllamaChatResponse>(request,
-                options.WaitForCompletion ? null : options.TimeoutSeconds, cancellationToken).ConfigureAwait(false);
+            await PrepareInferenceModelAsync(options, cancellationToken).ConfigureAwait(false);
+            var httpTimer = Stopwatch.StartNew();
+            OllamaChatResponse response;
+            try
+            {
+                response = await SendAsync<OllamaChatResponse>(request,
+                    options.WaitForCompletion ? null : options.TimeoutSeconds, cancellationToken).ConfigureAwait(false);
+            }
+            finally { logger.LogInformation("Ollama PDF {Operation}: requisição HTTP {HttpSeconds}s", operation, httpTimer.Elapsed.TotalSeconds); }
+            logger.LogInformation("Ollama PDF {Operation}: carga {LoadSeconds}s; prompt real {PromptTokens}; avaliação do prompt {PromptSeconds}s; tokens gerados {GeneratedTokens}; geração {GenerationSeconds}s; total servidor {ServerSeconds}s",
+                operation, response.LoadDuration / 1_000_000_000d, response.PromptTokenCount,
+                response.PromptEvaluationDuration / 1_000_000_000d, response.GeneratedTokenCount,
+                response.EvaluationDuration / 1_000_000_000d, response.TotalDuration / 1_000_000_000d);
+            if (response.PromptTokenCount > budget.InputTokens)
+                logger.LogWarning("Ollama PDF {Operation}: prompt real {ActualTokens} excedeu a estimativa de entrada {EstimatedTokens}; revisar margem para este modelo.",
+                    operation, response.PromptTokenCount, budget.InputTokens);
 
             if (response.DoneReason == "length")
                 throw new ImageAnalysisException(ImageAnalysisFailure.ContextExhausted,
@@ -51,7 +95,13 @@ public sealed partial class OllamaClient
             cancellationToken.ThrowIfCancellationRequested();
             await cache.WriteAsync(cacheKey,
                 JsonSerializer.Serialize(data, OllamaExtractionContract.ExtractionJsonOptions), cancellationToken).ConfigureAwait(false);
+            outcome = "success";
             return data;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            outcome = "cancelled";
+            throw;
         }
         catch (JsonException ex)
         {
@@ -60,18 +110,20 @@ public sealed partial class OllamaClient
         }
         finally
         {
-            _inference.Release();
+            if (acquired) _inference.Release();
+            logger.LogInformation("Ollama PDF {Operation}: resultado {Outcome}; tempo total {TotalSeconds}s",
+                operation, outcome, total.Elapsed.TotalSeconds);
         }
     }
 
-    private static string PdfCacheKey(string text, string modelDigest, OllamaOptions options, int contextTokens)
+    private static string PdfCacheKey(string text, string modelDigest, OllamaOptions options, OllamaGenerationOptions generationOptions)
     {
         string textHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
         string generation = JsonSerializer.Serialize(new
         {
             options.Model,
             Server = options.ServerUri().AbsoluteUri,
-            Options = new OllamaGenerationOptions(contextTokens),
+            Options = generationOptions,
             Think = false,
             options.KeepAliveSeconds
         }, OllamaExtractionContract.JsonOptions);

@@ -83,6 +83,7 @@ public sealed partial class OllamaClient(HttpClient http, IAnalysisCache cache, 
             return cached;
         }
         onStarted?.Invoke();
+        await PrepareInferenceModelAsync(options, cancellationToken).ConfigureAwait(false);
         var response = await SendAsync<OllamaChatResponse>(request, options.WaitForCompletion ? null : options.TimeoutSeconds, cancellationToken).ConfigureAwait(false);
         onResponse?.Invoke(response);
         if (!response.Done || response.Error is not null || response.DoneReason is not (null or "stop") ||
@@ -196,6 +197,7 @@ public sealed partial class OllamaClient(HttpClient http, IAnalysisCache cache, 
 
             onCall(new(true));
 
+            await PrepareInferenceModelAsync(options, ct).ConfigureAwait(false);
             var response = await SendAsync<OllamaChatResponse>(request, options.WaitForCompletion ? null : options.TimeoutSeconds, ct).ConfigureAwait(false);
 
             onCall(new(false, response.TotalDuration, response.LoadDuration, response.EvaluationDuration));
@@ -217,7 +219,14 @@ public sealed partial class OllamaClient(HttpClient http, IAnalysisCache cache, 
     {
         // Ordered image-set cache: never substitute a partial window for a complete job.
         string hashes = string.Join("\n", images.Select(i => Convert.ToHexString(SHA256.HashData(Convert.FromBase64String(i)))));
-        string settings = JsonSerializer.Serialize(options, OllamaExtractionContract.JsonOptions);
+        // PDF preferences must not invalidate existing visual caches.
+        string settings = JsonSerializer.Serialize(new
+        {
+            options.PreferLowMemoryIndividualAnalysis, options.BaseUrl, options.Model,
+            options.TimeoutSeconds, options.WaitForCompletion, options.ContextTokens, options.MaxContextTokens,
+            options.KeepAliveSeconds, options.MaxPreparedDimension, options.BatchSize, options.MaxImages,
+            options.MaxBatchImageBytes, options.MaxBatchPixels
+        }, OllamaExtractionContract.JsonOptions);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("vision-v2\n" + contract + "\n" + settings + "\n" + context + "\n" + hashes)));
     }
 

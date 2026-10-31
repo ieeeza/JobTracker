@@ -93,3 +93,29 @@ textual não pode passar pela validação de visão. Capacidades têm cache limi
 a 32 entradas/5 minutos, separado por servidor, nome e digest. Tags continuam
 sendo consultadas para detectar remoção ou substituição do modelo sem usar
 identidades obsoletas no cache de resultados.
+
+## Fase 4 — execução e diagnóstico
+
+Uma única instância de `OllamaClient` e o semáforo existente continuam serializando
+PDFs, screenshots e agrupamentos. Ao trocar de modelo, o cliente solicita
+`keep_alive=0` para o último modelo em que ele iniciou inferência, antes da próxima
+chamada. Não enumera nem descarrega indiscriminadamente modelos de outros clientes.
+Cache hit não carrega nem descarrega modelos. Falhas no descarregamento impedem
+iniciar a nova inferência; não são ocultadas.
+
+PDFs mantêm temperatura zero, sem thinking/streaming, e usam `num_predict` igual
+ao contexto selecionado menos a estimativa de entrada. Essa reserva comporta
+a saída estimada e a margem; respostas encerradas por limite continuam rejeitadas.
+Screenshots mantêm `num_predict=-1`. O contexto e todos os parâmetros efetivos,
+incluindo schema e limite de saída, integram o cache PDF. Preferências PDF foram
+excluídas da identidade visual para não invalidar caches de imagens ao ajustá-las.
+
+Logs estruturados com identificador por análise registram modelo, contexto,
+bytes, todas as parcelas da estimativa, limite de geração, espera do semáforo,
+verificação de modelo, HTTP, cache hit, cancelamento/falha/sucesso e tempo total.
+Quando presentes, registram tokens reais de entrada/saída e duração de carga,
+avaliação de prompt, geração e total do servidor. Nanossegundos são divididos por
+1.000.000.000. Uma entrada real maior que a estimativa gera aviso de calibração.
+O logger existente passa a aceitar Information somente para `OllamaClient`;
+o restante mantém Warning. Nenhum texto, prompt, resposta ou dado pessoal é
+registrado nessas métricas. Inferências paralelas e retries não foram adicionados.

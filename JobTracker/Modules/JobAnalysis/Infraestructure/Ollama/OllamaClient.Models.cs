@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Json;
 using JobTracker.Modules.JobAnalysis.Application.Models;
+using Microsoft.Extensions.Logging;
 
 namespace JobTracker.Modules.JobAnalysis.Infrastructure.Ollama;
 
@@ -9,6 +11,28 @@ public sealed partial class OllamaClient
 {
     private readonly ConcurrentDictionary<string, (DateTimeOffset CheckedAt, OllamaShowResponse Details)> _modelCapabilities = new();
     private static readonly TimeSpan ModelCapabilitiesLifetime = TimeSpan.FromMinutes(5);
+    // Accessed only while holding _inference. Never unload a model owned by another client.
+    private (Uri Server, string Model)? _lastInferenceModel;
+
+    private async Task PrepareInferenceModelAsync(OllamaOptions options, CancellationToken ct)
+    {
+        var current = (Server: options.ServerUri(), options.Model);
+        if (_lastInferenceModel is { } previous && previous != current)
+        {
+            var timer = Stopwatch.StartNew();
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(previous.Server, "api/generate"))
+            {
+                Content = JsonContent.Create(new OllamaUnloadRequest(previous.Model), options: OllamaExtractionContract.JsonOptions)
+            };
+            var response = await SendAsync<OllamaUnloadResponse>(request, 30, ct).ConfigureAwait(false);
+            if (!response.Done || response.Error is not null) throw InvalidResponse();
+            _lastInferenceModel = null;
+            logger.LogInformation("Ollama: troca de modelo; anterior {PreviousModel}; próximo {NextModel}; descarregamento {UnloadSeconds}s",
+                previous.Model, current.Model, timer.Elapsed.TotalSeconds);
+        }
+        // Retain ownership even if generation later fails or the client cancels the request.
+        _lastInferenceModel = current;
+    }
 
     private async Task ValidateModelCapabilitiesAsync(OllamaOptions options, string digest, bool requiresVision, CancellationToken ct)
     {

@@ -11,7 +11,7 @@ internal sealed record OllamaGenerationOptions([property: JsonPropertyName("num_
     // Let the model stop naturally rather than inherit a model-specific output cap.
     // The Ollama runner may still stop when its context or internal budget is exhausted.
     [JsonPropertyName("num_predict")]
-    public int NumPredict => -1;
+    public int NumPredict { get; init; } = -1;
 
     // Extraction should not inherit a model's creative sampling defaults.
     public double Temperature => 0;
@@ -32,7 +32,13 @@ internal sealed record OllamaChatResponse(OllamaMessage? Message, bool Done,
     [JsonPropertyName("total_duration")] public long TotalDuration { get; init; }
     [JsonPropertyName("load_duration")] public long LoadDuration { get; init; }
     [JsonPropertyName("eval_duration")] public long EvaluationDuration { get; init; }
+    [JsonPropertyName("prompt_eval_count")] public long? PromptTokenCount { get; init; }
+    [JsonPropertyName("prompt_eval_duration")] public long? PromptEvaluationDuration { get; init; }
+    [JsonPropertyName("eval_count")] public long? GeneratedTokenCount { get; init; }
 }
+internal sealed record OllamaUnloadRequest(string Model,
+    [property: JsonPropertyName("keep_alive")] int KeepAliveSeconds = 0, bool Stream = false);
+internal sealed record OllamaUnloadResponse(bool Done, string? Error);
 internal sealed record OllamaModel(string? Name, string? Model,
     [property: JsonPropertyName("remote_model")] string? RemoteModel,
     [property: JsonPropertyName("remote_host")] string? RemoteHost)

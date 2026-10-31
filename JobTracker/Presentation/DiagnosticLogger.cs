@@ -30,7 +30,8 @@ public sealed class DiagnosticLoggerProvider : ILoggerProvider
     private sealed class DiagnosticLogger(ChannelWriter<string> writer, string category) : ILogger
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
+        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning ||
+            logLevel == LogLevel.Information && category == "JobTracker.Modules.JobAnalysis.Infrastructure.Ollama.OllamaClient";
         public void Log<TState>(LogLevel level, EventId id, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             if (IsEnabled(level)) writer.TryWrite($"{DateTime.UtcNow:O} [{level}] {category}: {formatter(state, exception)}");
