@@ -4,30 +4,30 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using JobTracker.Modules.JobAnalysis.Application.Models;
+using JobTracker.Modules.JobAnalysis.Infraestructure.Ollama;
 using Microsoft.Extensions.Logging;
 
 namespace JobTracker.Modules.JobAnalysis.Infrastructure.Ollama;
 
 public sealed partial class OllamaClient
 {
-    internal async Task<OllamaPdfJobData> ExtractPdfAsync(
+    internal async Task<OllamaJobData> ExtractPdfAsync(
         string text, OllamaOptions options, CancellationToken cancellationToken)
     {
-        options.Validate();
-        OllamaPdfExtractionContract.ValidateInput(text, options);
+        int contextTokens = OllamaPdfContextBudget.SelectContextTokens(text, options);
 
         await _inference.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             string digest = await ModelIdentityAsync(options, cancellationToken).ConfigureAwait(false);
-            string cacheKey = PdfCacheKey(text, digest, options);
+            string cacheKey = PdfCacheKey(text, digest, options, contextTokens);
             if (await cache.ReadAsync(cacheKey, cancellationToken).ConfigureAwait(false) is { } saved)
-                return OllamaPdfResultMapper.Parse(saved);
+                return OllamaResultMapper.ParsePdf(saved, cancellationToken);
 
             var body = new OllamaChatRequest(options.Model,
                 [new("system", OllamaPdfExtractionContract.SystemPrompt),
                  new("user", OllamaPdfExtractionContract.UserPrefix + text)],
-                OllamaPdfExtractionContract.Schema, new OllamaGenerationOptions(options.ContextTokens))
+                OllamaExtractionContract.Schema, new OllamaGenerationOptions(contextTokens))
             {
                 KeepAliveSeconds = options.KeepAliveSeconds
             };
@@ -46,7 +46,7 @@ public sealed partial class OllamaClient
                 response.Message is not { Role: "assistant" } message || string.IsNullOrWhiteSpace(message.Content))
                 throw InvalidResponse();
 
-            var data = OllamaPdfResultMapper.Parse(message.Content);
+            var data = OllamaResultMapper.ParsePdf(message.Content, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             await cache.WriteAsync(cacheKey,
                 JsonSerializer.Serialize(data, OllamaExtractionContract.ExtractionJsonOptions), cancellationToken).ConfigureAwait(false);
@@ -63,20 +63,20 @@ public sealed partial class OllamaClient
         }
     }
 
-    private static string PdfCacheKey(string text, string modelDigest, OllamaOptions options)
+    private static string PdfCacheKey(string text, string modelDigest, OllamaOptions options, int contextTokens)
     {
         string textHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
         string generation = JsonSerializer.Serialize(new
         {
             options.Model,
             Server = options.ServerUri().AbsoluteUri,
-            Options = new OllamaGenerationOptions(options.ContextTokens),
+            Options = new OllamaGenerationOptions(contextTokens),
             Think = false,
             options.KeepAliveSeconds
         }, OllamaExtractionContract.JsonOptions);
-        string identity = string.Join('\n', "pdf-text-v1", textHash, modelDigest,
-            OllamaPdfExtractionContract.PromptVersion, OllamaPdfExtractionContract.SchemaVersion,
-            OllamaPdfExtractionContract.SystemPrompt, generation);
+        string identity = string.Join('\n', "pdf-text-v2", textHash, modelDigest,
+            OllamaPdfExtractionContract.PromptVersion,
+            OllamaPdfExtractionContract.SystemPrompt, OllamaExtractionContract.Schema.ToJsonString(), generation);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
     }
 }

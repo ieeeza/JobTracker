@@ -120,9 +120,9 @@ internal static class OllamaExtractionContract
                 ["items"] = new JsonObject { ["type"] = "string", ["maxLength"] = name == "technologies" ? 80 : 2000 }
             };
             if (name == "requirements")
-                listSchema["description"] = "Requisitos obrigatórios ou sem classificação explícita, de todas as imagens.";
+                listSchema["description"] = "Requisitos obrigatórios ou sem classificação explícita, de todo o conteúdo fornecido.";
             if (name == "preferredRequirements")
-                listSchema["description"] = "Todos os requisitos desejáveis e diferenciais das imagens, incluindo formação, domínio de negócio e tecnologias. Use [] somente se não houver requisitos desejáveis.";
+                listSchema["description"] = "Todos os requisitos desejáveis e diferenciais do conteúdo fornecido, incluindo formação, domínio de negócio e tecnologias. Use [] somente se não houver requisitos desejáveis.";
             properties[name] = listSchema;
         }
         properties["multipleJobs"] = new JsonObject { ["type"] = "boolean" };

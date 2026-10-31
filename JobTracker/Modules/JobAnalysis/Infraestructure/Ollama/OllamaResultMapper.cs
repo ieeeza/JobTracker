@@ -7,11 +7,35 @@ namespace JobTracker.Modules.JobAnalysis.Infrastructure.Ollama;
 
 internal static class OllamaResultMapper
 {
+    public static OllamaJobData Parse(string json)
+    {
+        using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 16 });
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+            throw new JsonException("O resultado deve ser um objeto.");
+
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in document.RootElement.EnumerateObject())
+            if (!names.Add(property.Name)) throw new JsonException("Propriedade duplicada.");
+
+        var data = JsonSerializer.Deserialize<OllamaJobData>(json, OllamaExtractionContract.ExtractionJsonOptions)
+            ?? throw new JsonException("Resultado nulo.");
+        Validate(data);
+        return data;
+    }
+
+    public static OllamaJobData ParsePdf(string json, CancellationToken ct)
+    {
+        var data = Parse(json);
+        // Validate job identification and combined form limits before caching the extraction.
+        _ = MapPdf(data, ct);
+        return data;
+    }
+
     public static void Validate(OllamaJobData data)
     {
         if (data.MultipleJobs)
             throw new ImageAnalysisException(ImageAnalysisFailure.ConflictingJobs,
-                "As capturas parecem pertencer a vagas diferentes. Nenhum dado foi combinado. Separe as imagens por vaga e analise novamente.");
+                "O conteúdo indica vagas diferentes ou informações conflitantes. Nenhum dado foi combinado. Analise apenas uma vaga por vez.");
         foreach (var (value, maximum) in new[] { (data.Company, 200), (data.Title, 300), (data.Seniority, 500),
                      (data.WorkMode, 500), (data.Location, 500), (data.EmploymentType, 500), (data.Salary, 500),
                      (data.Description, 100000), (data.Url, 8000) })
@@ -33,6 +57,38 @@ internal static class OllamaResultMapper
     }
 
     public static JobImageAnalysisResult Map(IReadOnlyList<OllamaJobData> batches, string model, int imageCount, CancellationToken ct)
+    {
+        var (content, url) = MapContent(batches, ct);
+        var warnings = CreateWarnings(content, "Sugestões de IA local: confira cada campo nas imagens. Um JSON válido não garante informações corretas.");
+        if (batches.Count > 1) warnings.Add($"{batches.Count} lotes combinados na ordem original. Confira se todos os prints pertencem à mesma vaga.");
+        ct.ThrowIfCancellationRequested();
+        // This is structured extraction, not OCR. Do not fabricate an OCR transcript or quality score.
+        return new(content, null, warnings, url,
+            $"IA local • Ollama/{model} • {DateTime.UtcNow:O} • {imageCount} print(s), {batches.Count} lote(s). Sugestões sujeitas a revisão.",
+            JsonSerializer.Serialize(batches, new JsonSerializerOptions(OllamaExtractionContract.ExtractionJsonOptions) { WriteIndented = true }));
+    }
+
+    public static PdfJobAnalysisResult MapPdf(OllamaJobData data, CancellationToken ct)
+    {
+        var (content, url) = MapContent([data], ct);
+        if (content.Title.Count(char.IsLetter) < 2 && content.Description.Count(char.IsLetter) < 20)
+            throw new ImageAnalysisException(ImageAnalysisFailure.InvalidResponse,
+                "A IA não identificou cargo ou descrição suficientes para reconhecer uma vaga. " +
+                "Confira se o PDF contém uma única oportunidade e se o texto foi extraído corretamente.");
+        var warnings = CreateWarnings(content, "Sugestões de IA local: confira cada campo no PDF. Nenhuma vaga foi salva.");
+        ct.ThrowIfCancellationRequested();
+        return new(content, warnings.AsReadOnly(), url);
+    }
+
+    private static List<string> CreateWarnings(JobContent content, string reviewMessage)
+    {
+        var warnings = new List<string> { reviewMessage };
+        if (content.Company.Length == 0) warnings.Add("Empresa não identificada; preencha manualmente.");
+        if (content.Title.Length == 0) warnings.Add("Cargo não identificado; preencha manualmente.");
+        return warnings;
+    }
+
+    private static (JobContent Content, string Url) MapContent(IReadOnlyList<OllamaJobData> batches, CancellationToken ct)
     {
         foreach (var batch in batches) Validate(batch);
         string Scalar(string name, Func<OllamaJobData, string?> select)
@@ -68,20 +124,12 @@ internal static class OllamaResultMapper
         if (description.Length > 200000 || requirements.Length > 50000 || technologies.Length > 8000 ||
             tags.Length > 100 || tags.Any(t => t.Length > 80))
             throw new ImageAnalysisException(ImageAnalysisFailure.InvalidResponse,
-                "O resultado combinado excede os limites do formulário. Nenhum conteúdo foi cortado. Reduza as capturas e tente novamente.");
+                "O resultado combinado excede os limites do formulário. Nenhum conteúdo foi cortado. Reduza o conteúdo de entrada e tente novamente.");
         var content = new JobContent(title, company, description, location, mode, seniority, contract, salary,
             requirements, "", "", "", null, technologies);
         if (new[] { title, company, description, location, mode, seniority, contract, salary, technologies, url }.All(string.IsNullOrWhiteSpace))
             throw OllamaClient.InvalidResponse();
-        var warnings = new List<string> { "Sugestões de IA local: confira cada campo nas imagens. Um JSON válido não garante informações corretas." };
-        if (company.Length == 0) warnings.Add("Empresa não identificada; preencha manualmente.");
-        if (title.Length == 0) warnings.Add("Cargo não identificado; preencha manualmente.");
-        if (batches.Count > 1) warnings.Add($"{batches.Count} lotes combinados na ordem original. Confira se todos os prints pertencem à mesma vaga.");
-        ct.ThrowIfCancellationRequested();
-        // This is structured extraction, not OCR. Do not fabricate an OCR transcript or quality score.
-        return new(content, null, warnings, url,
-            $"IA local • Ollama/{model} • {DateTime.UtcNow:O} • {imageCount} print(s), {batches.Count} lote(s). Sugestões sujeitas a revisão.",
-            JsonSerializer.Serialize(batches, new JsonSerializerOptions(OllamaExtractionContract.ExtractionJsonOptions) { WriteIndented = true }));
+        return (content, url);
     }
 
     private static string Clean(string? value)

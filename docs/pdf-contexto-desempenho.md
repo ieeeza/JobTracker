@@ -43,3 +43,36 @@ Referências de protocolo: [chat e métricas em nanossegundos](https://docs.olla
 O schema em `format` restringe a resposta; a documentação recomenda também
 orientar o modelo pelo prompt. A revisão textual deve preservar a explicação
 dos campos mesmo que remova a cópia integral do schema.
+
+## Fase 2 — orçamento proporcional
+
+Uma inferência local direta, com vaga artificial de 5.126 bytes e o prompt
+anterior, processou 2.185 tokens de entrada e 237 de saída em contexto 8.192.
+Isso não mede a qualidade da extração nem representa o PDF pessoal do usuário.
+Foram 7,56 s de parede, incluindo 3,65 s de carga e 3,19 s de geração.
+Nenhuma conclusão comparativa de desempenho é tomada a partir dessa carga fria.
+
+A média dessa entrada foi superior a quatro bytes por token. A heurística usa
+três bytes por token para letras/espaços latinos, conta bytes integralmente para
+outros caracteres (inclusive símbolos e outros alfabetos), e adiciona margem de
+20% ao total. Não é um tokenizer e não garante a contagem de todos os modelos.
+Essa escolha é mais conservadora que a amostra medida, sem o extremo anterior
+de reservar um token para cada byte de toda a entrada e saída.
+
+O orçamento distingue texto, instruções, prefixo, 96 tokens de enquadramento,
+reserva de saída `max(512, tokensTexto + 256)` para conteúdo integral e estrutura
+JSON, e margem proporcional. Limites máximos dos campos não entram na conta.
+O schema completo aparece somente em `format`; o prompt mantém todos os nomes
+e instruções sem duplicar a definição de validação. Sua contribuição adicional
+ao conteúdo das mensagens é zero, e continua incluído na chave de cache.
+
+Para a mesma amostra: texto 1.882, instruções 758, prefixo 25, enquadramento 96,
+saída 2.138, margem 980: **5.879 tokens estimados**. Com inicial 4.096 e máximo
+8.192, seleciona 8.192. Textos menores permanecem em 4.096. A seleção usa degraus
+de 4.096 apenas quando necessário, sempre limitada pelo máximo configurado.
+Não há cortes, chunking ou retry automático. A mensagem de recusa indica que
+se trata de estimativa e preserva o original.
+
+Esta fase também registra os componentes compartilhados de PDF já preparados
+na etapa arquitetural anterior, necessários para compilar o orçamento separado.
+Não inclui alterações anteriores não relacionadas no bootstrap, README ou serviços de UI.

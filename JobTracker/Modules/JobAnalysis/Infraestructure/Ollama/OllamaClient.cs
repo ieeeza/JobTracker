@@ -74,8 +74,7 @@ public sealed partial class OllamaClient(HttpClient http, IAnalysisCache cache, 
         string cacheKey = CacheKey(options, images, OllamaExtractionContract.SystemPrompt + digest, contextTokens);
         if (!bypassCache && await cache.ReadAsync(cacheKey, cancellationToken).ConfigureAwait(false) is { } saved)
         {
-            var cached = JsonSerializer.Deserialize<OllamaJobData>(saved, OllamaExtractionContract.ExtractionJsonOptions) ?? throw InvalidResponse();
-            OllamaResultMapper.Validate(cached);
+            var cached = OllamaResultMapper.Parse(saved);
             onCacheHit?.Invoke();
             return cached;
         }
@@ -97,9 +96,7 @@ public sealed partial class OllamaClient(HttpClient http, IAnalysisCache cache, 
         }
         try
         {
-            var data = JsonSerializer.Deserialize<OllamaJobData>(message.Content, OllamaExtractionContract.ExtractionJsonOptions)
-                ?? throw new JsonException("Extração nula.");
-            OllamaResultMapper.Validate(data);
+            var data = OllamaResultMapper.Parse(message.Content);
             await cache.WriteAsync(cacheKey, JsonSerializer.Serialize(data, OllamaExtractionContract.ExtractionJsonOptions), cancellationToken).ConfigureAwait(false);
             return data;
         }

@@ -13,6 +13,6 @@ public sealed class OllamaJobPdfAnalyzer(OllamaClient client, ImageAnalysisSetti
         OllamaOptions options = await settings.LoadAsync(cancellationToken).ConfigureAwait(false);
         var data = await client.ExtractPdfAsync(extractedText, options, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return OllamaPdfResultMapper.Map(data);
+        return OllamaResultMapper.MapPdf(data, cancellationToken);
     }
 }
