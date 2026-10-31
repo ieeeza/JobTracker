@@ -119,3 +119,12 @@ avaliação de prompt, geração e total do servidor. Nanossegundos são dividid
 O logger existente passa a aceitar Information somente para `OllamaClient`;
 o restante mantém Warning. Nenhum texto, prompt, resposta ou dado pessoal é
 registrado nessas métricas. Inferências paralelas e retries não foram adicionados.
+
+## Fase 5 — interface
+
+Configurações passam a exibir modelo de imagens, modelo de PDFs (vazio mantém o
+modelo visual), contexto inicial/máximo e permanência próprios dos PDFs. Os
+botões Verificar imagens e Verificar PDF usam tags e capacidades reais sem
+carregar os modelos. Salvar preserva todas as preferências anteriores, incluindo
+limites visuais, timeout e modo de economia. Os novos campos seguem o DesignSystem.
+O contexto visual continua no bloco de limites de imagens.

@@ -94,13 +94,46 @@
                     IsReadOnly="True"
                     TextWrapping="Wrap"
                     AutomationProperties.Name="Modalidade identificada no PDF" />
+                <TextBlock Text="Senioridade" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.Seniority, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AutomationProperties.Name="Senioridade identificada no PDF" />
+                <TextBlock Text="Contratação e jornada" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.Contract, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AutomationProperties.Name="Contratação identificada no PDF" />
+                <TextBlock Text="Remuneração" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.Salary, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AutomationProperties.Name="Remuneração identificada no PDF" />
+                <TextBlock Text="URL da vaga" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Url, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AutomationProperties.Name="URL identificada no PDF" />
+                <TextBlock Text="Requisitos obrigatórios e desejáveis" FontWeight="SemiBold" />
+                <TextBox
+                    Text="{Binding AnalysisResult.Content.Requirements, Mode=OneWay}"
+                    IsReadOnly="True"
+                    TextWrapping="Wrap"
+                    AcceptsReturn="True"
+                    VerticalScrollBarVisibility="Auto"
+                    MaxHeight="220"
+                    AutomationProperties.Name="Requisitos identificados no PDF" />
                 <TextBlock Text="Tecnologias" FontWeight="SemiBold" />
                 <TextBox
                     Text="{Binding AnalysisResult.Content.Technologies, Mode=OneWay}"
                     IsReadOnly="True"
                     TextWrapping="Wrap"
                     AutomationProperties.Name="Tecnologias identificadas no PDF" />
-                <TextBlock Text="Descrição" FontWeight="SemiBold" />
+                <TextBlock Text="Descrição, responsabilidades e benefícios" FontWeight="SemiBold" />
                 <TextBox
                     Text="{Binding AnalysisResult.Content.Description, Mode=OneWay}"
                     IsReadOnly="True"

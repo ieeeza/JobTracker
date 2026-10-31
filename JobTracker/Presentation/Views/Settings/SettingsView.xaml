@@ -15,7 +15,7 @@
                         Text="Inteligência artificial local — Ollama"
                         Style="{StaticResource Heading}" />
                     <TextBlock
-                        Text="Instale qwen3-vl:8b no Ollama local. O JobTracker não instala modelos nem inicia o Ollama. As imagens são enviadas somente para este computador."
+                        Text="Escolha modelos já instalados no Ollama local. Imagens exigem um modelo com visão; PDFs podem usar um modelo textual leve. O JobTracker não instala modelos nem inicia o Ollama. Os dados permanecem neste computador."
                         Style="{StaticResource Muted}" />
                     <TextBlock
                         Text="Endereço do servidor local"
@@ -25,12 +25,41 @@
                         MaxLength="200"
                         AutomationProperties.Name="Endereço local do Ollama" />
                     <TextBlock
-                        Text="Modelo" />
+                        Text="Modelo para imagens" />
                     <TextBox
                         Text="{Binding Ollama.Model, UpdateSourceTrigger=PropertyChanged}"
-                        IsReadOnly="True"
                         MaxLength="200"
-                        AutomationProperties.Name="Modelo Ollama" />
+                        AutomationProperties.Name="Modelo Ollama para imagens" />
+                    <TextBlock Text="Modelo para PDFs" />
+                    <TextBox
+                        Text="{Binding Ollama.PdfModel, UpdateSourceTrigger=PropertyChanged}"
+                        MaxLength="200"
+                        AutomationProperties.Name="Modelo Ollama para PDFs" />
+                    <TextBlock
+                        Text="Use a tag exata instalada, por exemplo qwen3-vl:4b-instruct. Em branco, usa o modelo de imagens. Verifique a compatibilidade antes de analisar."
+                        Style="{StaticResource Muted}" />
+                    <Expander Header="Contexto e memória para PDFs" IsExpanded="True" Margin="0,8">
+                        <StackPanel>
+                            <TextBlock Text="Contexto inicial de PDFs (padrão 4096)" />
+                            <TextBox
+                                Text="{Binding Ollama.PdfContextTokens, UpdateSourceTrigger=PropertyChanged}"
+                                MaxLength="5"
+                                AutomationProperties.Name="Contexto inicial de PDFs" />
+                            <TextBlock Text="Contexto máximo de PDFs (padrão 8192)" />
+                            <TextBox
+                                Text="{Binding Ollama.PdfMaxContextTokens, UpdateSourceTrigger=PropertyChanged}"
+                                MaxLength="6"
+                                AutomationProperties.Name="Contexto máximo de PDFs" />
+                            <TextBlock Text="Manter modelo de PDF carregado (0–3600 segundos; padrão 300)" />
+                            <TextBox
+                                Text="{Binding Ollama.PdfKeepAliveSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                MaxLength="4"
+                                AutomationProperties.Name="Permanência do modelo de PDF" />
+                            <TextBlock
+                                Text="O contexto cresce somente quando o texto e a resposta precisam de mais espaço, até o máximo escolhido. Contextos maiores exigem mais memória. O documento nunca é cortado automaticamente."
+                                Style="{StaticResource Muted}" />
+                        </StackPanel>
+                    </Expander>
                     <CheckBox
                         Content="Aguardar o Ollama concluir, sem limite de tempo"
                         IsChecked="{Binding Ollama.WaitForCompletion}" />
@@ -51,7 +80,7 @@
                         Width="140"
                         HorizontalAlignment="Left" />
                     <TextBlock
-                        Text="Manter modelo carregado (0–3600 segundos)" />
+                        Text="Manter modelo de imagens carregado (0–3600 segundos)" />
                     <TextBox
                         Text="{Binding Ollama.KeepAliveSeconds, UpdateSourceTrigger=PropertyChanged}"
                         MaxLength="4"
@@ -74,7 +103,7 @@
                                 MaxLength="6"
                                 AutomationProperties.Name="Contexto máximo do Ollama em tokens" />
                             <TextBlock
-                                Text="Na análise individual, a expansão só ocorre com a economia de memória desativada. Mais contexto exige mais memória e pode tornar a análise muito mais lenta. Estes valores valem apenas para o JobTracker."
+                                Text="Em imagens individuais, a expansão só ocorre com a economia de memória desativada. Mais contexto exige mais memória e pode tornar a análise muito mais lenta. Estes limites são independentes dos PDFs e valem apenas para o JobTracker."
                                 Style="{StaticResource Muted}" />
                             <TextBlock
                                 Text="Imagens por lote (1–10; padrão 3)" />
@@ -107,8 +136,11 @@
                             Command="{Binding Ollama.SaveCommand}"
                             Style="{StaticResource PrimaryButton}" />
                         <Button
-                            Content="Verificar conexão"
+                            Content="Verificar imagens"
                             Command="{Binding Ollama.VerifyCommand}" />
+                        <Button
+                            Content="Verificar PDF"
+                            Command="{Binding Ollama.VerifyPdfCommand}" />
                     </WrapPanel>
                     <TextBlock
                         Text="{Binding Ollama.ConnectionStatus}"
