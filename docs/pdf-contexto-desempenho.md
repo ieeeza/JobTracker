@@ -128,3 +128,67 @@ botões Verificar imagens e Verificar PDF usam tags e capacidades reais sem
 carregar os modelos. Salvar preserva todas as preferências anteriores, incluindo
 limites visuais, timeout e modo de economia. Os novos campos seguem o DesignSystem.
 O contexto visual continua no bloco de limites de imagens.
+
+## Fase 6 — validação e limites da evidência
+
+A mesma amostra artificial de 5.126 bytes foi enviada ao modelo instalado
+`qwen3-vl:4b-instruct`, com prompt/schema/opções do código compilado. Seleção:
+8.192 tokens, estimativa 5.879, `num_predict=5431`. Resposta `done=true`,
+`done_reason=stop`, `multipleJobs=false`, aceita por `OllamaResultMapper.ParsePdf`.
+A amostra repete responsabilidades e requisitos equivalentes; não substitui um
+documento real diversificado nem permite avaliar cobertura factual geral.
+
+| Medição local | Contrato anterior | Contrato atual |
+|---|---:|---:|
+| Tokens reais no prompt | 2.185 | 1.718 |
+| Tokens gerados | 237 | 238 |
+| Carga do modelo (s) | 3,651 | 5,728 |
+| Avaliação do prompt (s) | 0,470 | 0,368 |
+| Geração (s) | 3,192 | 3,530 |
+| Tempo de parede (s) | 7,560 | 9,794 |
+
+A redução de tokens de prompt foi observada. Não há comprovação de ganho de
+tempo total: as cargas diferiram e apenas uma medição por contrato foi feita.
+`/api/ps` confirmou contexto 8.192 e cerca de 4,32 GB de VRAM ocupada pelo 4B
+nessa execução; não é uma garantia para outros documentos ou modelos.
+
+Uma preferência antiga com imagem `qwen3-vl:8b`, contexto 12.000, máximo 32.768
+e permanência 600 foi desserializada com opções estritas: todos esses valores
+foram preservados. PDF recebeu 4.096/8.192/300 e fallback para o modelo antigo.
+Nenhum banco pessoal foi modificado.
+
+Verificações:
+
+- `dotnet build JobTracker/JobTracker.slnx -c Release --no-restore -v minimal`:
+  aprovado em cada fase, zero erros e avisos no resultado final.
+- `dotnet test JobTracker.Tests/JobTracker.Tests.csproj -c Release --no-restore -v minimal`:
+  36 testes existentes aprovados. Nenhum caso de teste foi criado. Ajustes mínimos
+  foram necessários em três arquivos existentes: entradas de fronteira deixaram
+  de pressupor byte=token; configurações passaram a usar propriedades PDF; os
+  handlers passaram a responder `/api/show`; nome inválido agora testa sintaxe.
+- 20 bindings `Ollama.*` da tela de configurações conferidos por reflexão contra
+  o assembly compilado: nenhuma propriedade ausente. Não substitui QA visual.
+- Formatação dos arquivos alterados e `git diff --check` verificados.
+- O índice preparado para commit foi exportado para um diretório isolado:
+  build Release com zero erros/avisos e os mesmos 36 testes aprovados, sem
+  depender das mudanças pessoais mantidas fora dos commits.
+- O filtro da composition root libera Information apenas para a categoria do
+  cliente; a alteração foi separada da refatoração local preexistente em App.xaml.cs.
+
+O projeto de testes e seu acesso interno já existiam no workspace sem rastreamento;
+são versionados na validação para tornar reproduzível a solução que já os referencia.
+Não foram gerados testes novos nesta tarefa.
+
+Limitações: não houve análise do PDF pessoal, nova inferência de screenshots ou
+validação visual interativa da tela. A alternância entre dois modelos não foi
+medida com duas inferências reais. A estimativa depende do tokenizer; o fallback
+por byte para alfabetos não latinos pode recusar documentos que um tokenizer
+específico comportaria. Nenhum modelo foi instalado, variável global alterada
+ou quantidade de VRAM presumida como garantia.
+
+Principais arquivos: `OllamaPdfContextBudget.cs`, `OllamaPdfExtractionContract.cs`,
+`ImageAnalysisModels.cs`, `IJobImageAnalyzer.cs`, `OllamaClient.cs`,
+`OllamaClient.Pdf.cs`, `OllamaClient.Models.cs`, `OllamaContracts.cs`,
+`OllamaSettingsViewModel.cs`, `SettingsView.xaml`, `DiagnosticLogger.cs` e o
+filtro pontual de `App.xaml.cs`. A etapa de contexto também registra os contratos,
+mapper e prévia completa preparados na solicitação arquitetural anterior.

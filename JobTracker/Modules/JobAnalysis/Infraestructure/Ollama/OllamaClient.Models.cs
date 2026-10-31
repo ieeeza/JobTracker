@@ -11,7 +11,7 @@ public sealed partial class OllamaClient
 {
     private readonly ConcurrentDictionary<string, (DateTimeOffset CheckedAt, OllamaShowResponse Details)> _modelCapabilities = new();
     private static readonly TimeSpan ModelCapabilitiesLifetime = TimeSpan.FromMinutes(5);
-    // Accessed only while holding _inference. Never unload a model owned by another client.
+    // Accessed only while holding _inference. Track our requests; never scan/unload unrelated models.
     private (Uri Server, string Model)? _lastInferenceModel;
 
     private async Task PrepareInferenceModelAsync(OllamaOptions options, CancellationToken ct)

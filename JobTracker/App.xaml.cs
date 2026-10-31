@@ -105,7 +105,7 @@ public partial class App : System.Windows.Application
             services.AddTransient<DataTransferService>();
             services.AddSingleton<ITransferFiles, TransferFiles>();
             services.AddSingleton<DesktopServices>();
-            services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning).AddProvider(logs));
+            services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning).AddFilter("JobTracker.Modules.JobAnalysis.Infrastructure.Ollama.OllamaClient", LogLevel.Information).AddProvider(logs));
             services.AddSingleton(logs);
             services.AddSingleton<UiOperationState>();
             services.AddSingleton<JobWorkspace>();

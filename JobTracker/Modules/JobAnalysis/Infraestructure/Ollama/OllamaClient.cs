@@ -222,10 +222,19 @@ public sealed partial class OllamaClient(HttpClient http, IAnalysisCache cache, 
         // PDF preferences must not invalidate existing visual caches.
         string settings = JsonSerializer.Serialize(new
         {
-            options.PreferLowMemoryIndividualAnalysis, options.BaseUrl, options.Model,
-            options.TimeoutSeconds, options.WaitForCompletion, options.ContextTokens, options.MaxContextTokens,
-            options.KeepAliveSeconds, options.MaxPreparedDimension, options.BatchSize, options.MaxImages,
-            options.MaxBatchImageBytes, options.MaxBatchPixels
+            options.PreferLowMemoryIndividualAnalysis,
+            options.BaseUrl,
+            options.Model,
+            options.TimeoutSeconds,
+            options.WaitForCompletion,
+            options.ContextTokens,
+            options.MaxContextTokens,
+            options.KeepAliveSeconds,
+            options.MaxPreparedDimension,
+            options.BatchSize,
+            options.MaxImages,
+            options.MaxBatchImageBytes,
+            options.MaxBatchPixels
         }, OllamaExtractionContract.JsonOptions);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("vision-v2\n" + contract + "\n" + settings + "\n" + context + "\n" + hashes)));
     }

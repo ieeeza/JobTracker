@@ -1,14 +1,19 @@
 # Análise de PDFs com Ollama
 
+Atualização de orçamento, modelos independentes e métricas: [relatório de contexto e desempenho](pdf-contexto-desempenho.md).
+
 ## Entrega
 
 O fluxo de PDF permite selecionar um arquivo, extrair o texto com PdfPig,
 clicar em **Analisar com IA** e conferir cargo, empresa, localização, modalidade,
-tecnologias e descrição. A saída é uma pré-visualização somente leitura.
+senioridade, contratação, salário, URL, tecnologias e requisitos. A descrição
+reúne também responsabilidades e benefícios, pelo mesmo mapeamento das imagens.
+A saída é uma pré-visualização somente leitura.
 Nenhuma candidatura é criada, editada ou enviada por esse fluxo.
 
-A implementação usa exclusivamente o modelo local configurado,
-`qwen3-vl:8b`, e as preferências Ollama já existentes.
+A implementação usa exclusivamente um modelo instalado no Ollama local,
+configurável para PDFs independentemente do modelo de screenshots. A tag é
+resolvida nas tags reais e suas capacidades são verificadas antes da inferência.
 
 ## Estado recebido e decisões
 
@@ -19,8 +24,9 @@ apenas os componentes necessários ao fluxo solicitado.
 Não existia uma interface funcional `IJobPdfAnalyzer`: havia uma classe vazia
 `IJobAnalyzer`, não rastreada, substituída pelo contrato correto.
 O DTO inicial `PdfJobAnalysisResult` repetia campos do domínio e não tinha
-consumidores. Agora contém `JobContent Content` e avisos de revisão, evitando
-um segundo modelo de vaga na Application.
+consumidores. Agora contém `JobContent Content`, avisos de revisão e a URL,
+evitando um segundo modelo de vaga na Application. Esse retorno representa a
+prévia textual sem expor `OllamaJobData` nem carregar metadados de screenshots/OCR.
 
 O nome físico preexistente `Infraestructure` foi preservado. Os adaptadores
 Ollama continuam no namespace `JobTracker.Modules.JobAnalysis.Infrastructure.Ollama`.
@@ -38,23 +44,28 @@ Ollama continuam no namespace `JobTracker.Modules.JobAnalysis.Infrastructure.Oll
    das análises visuais, verifica o modelo local e consulta o cache.
 6. Se necessário, envia mensagens apenas textuais para `/api/chat`. O corpo usa
    `OllamaChatRequest`, `OllamaGenerationOptions` e JSON Schema no campo `format`.
-7. O JSON completo é validado e mapeado explicitamente para `JobContent`.
+7. O JSON completo usa `OllamaJobData` e é validado por `OllamaResultMapper`;
+   o mesmo núcleo de mapeamento das imagens produz `JobContent`.
 8. A propriedade observável `AnalysisResult` atualiza a pré-visualização WPF.
 
 Não foram criados outros HttpClients, pipelines HTTP, serviços de preferências
 ou métodos de verificação de modelo. O método `SendAsync<T>` existente continua
 responsável por limites de resposta, timeout, erros HTTP, memória, desconexão
-e cancelamento. A única alteração no arquivo original `OllamaClient.cs` foi
-tornar a classe `partial`; a extensão textual fica em `OllamaClient.Pdf.cs`.
+e cancelamento. `OllamaClient.cs` e sua extensão textual `OllamaClient.Pdf.cs`
+compartilham também o parser de respostas, que rejeita propriedades duplicadas.
 
 Referência de protocolo: [Structured outputs — Ollama](https://ollama.com/blog/structured-outputs).
 
 ## Contrato e validação
 
-`OllamaPdfExtractionContract` define o prompt, a versão do prompt, a versão do
-schema, os campos obrigatórios e os limites. O conteúdo do PDF é tratado como
-dados não confiáveis; comandos dentro do documento não devem substituir o
-system prompt. A descrição deve preservar os detalhes relevantes, sem resumir.
+`OllamaPdfExtractionContract` define somente instruções textuais e sua versão.
+O schema e o DTO completos são `OllamaExtractionContract.Schema` e `OllamaJobData`,
+compartilhados com screenshots. As descrições do schema são neutras quanto à
+origem do conteúdo; o system prompt de imagens não é usado para PDFs.
+`OllamaPdfContextBudget` trata separadamente a validação e o orçamento da entrada.
+O conteúdo do PDF é tratado como dados não confiáveis; comandos dentro do
+documento não devem substituir o system prompt. A extração preserva os detalhes
+em listas estruturadas, sem repetir essas listas em `description`.
 Portal de recrutamento não deve ser confundido com empresa contratante.
 
 A validação local não confia apenas no formato solicitado ao modelo:
@@ -63,11 +74,12 @@ A validação local não confia apenas no formato solicitado ao modelo:
 - Geração encerrada por limite (`done_reason=length`) é rejeitada.
 - JSON deve ser um objeto, sem propriedades duplicadas, extras ou ausentes.
 - Tipos e nulidade são verificados por System.Text.Json com as opções estritas existentes.
-- Campos desconhecidos são `null`; tecnologias são um array obrigatório, vazio
-  quando desconhecidas. Nulos dentro da lista, strings vazias e limites excedidos
-  são rejeitados explicitamente.
-- Modalidade aceita somente `Remoto`, `Híbrido`, `Presencial` ou `null`.
-- Há limites de comprimento e quantidade, e rejeição de tecnologias duplicadas.
+- Campos desconhecidos são `null`; listas obrigatórias usam `[]` quando vazias.
+  Nulos dentro das listas e limites excedidos são rejeitados pelo validador comum.
+- Modalidade, vínculo e jornada seguem o contrato textual existente das imagens.
+- Há limites de comprimento e quantidade e validação de URL HTTP/HTTPS sem credenciais.
+- `multipleJobs=true` rejeita múltiplas vagas ou identidades conflitantes antes do cache.
+  Instruções do PDF exigem essa sinalização, sem misturar os dados.
 - O resultado precisa conter um cargo textual ou uma descrição com conteúdo mínimo;
   metadados isolados, como empresa ou localização, não bastam.
 - O cache é submetido à mesma validação da resposta recém-gerada.
@@ -82,21 +94,27 @@ A conferência humana do documento continua necessária.
 
 ## Contexto e recursos
 
-A análise textual usa `ContextTokens` diretamente, respeitando sua relação com
-`MaxContextTokens`. Não aplica o modo visual de economia de memória, tamanho de
+A análise textual usa `PdfContextTokens` (padrão 4.096) como ponto inicial,
+limitado por `PdfMaxContextTokens` (padrão 8.192). Não aplica o modo visual de economia de memória, tamanho de
 lotes, dimensões, pixels ou quantidade de imagens à entrada textual.
 
-Esta versão recusa documentos acima de um orçamento conservador de bytes UTF-8:
-desconta prompt/schema e 1.024 unidades de margem do contexto configurado e
-reserva espaço equivalente ao texto para a saída. Isso é uma estimativa
-conservadora, não uma contagem exata pelo tokenizer do modelo.
+O orçamento estima separadamente texto, instruções e prefixo: três bytes por
+token para prosa latina, fallback por byte para outros caracteres, 96 tokens de
+mensagens e saída de no mínimo 512 tokens (texto estimado + 256 para estrutura).
+Aplica margem de 20% sobre o total. O schema completo é enviado somente em
+`format`, enquanto o prompt explica seus campos. É uma heurística fundamentada
+em medição local, não uma contagem exata pelo tokenizer. Os limites máximos dos
+campos não representam consumo obrigatório. O relatório detalha limitações.
 
-Não há chunking, truncamento de entrada, retry com contexto maior ou expansão
-automática. A mensagem informa o limite e orienta a usar um documento menor ou
-ajustar manualmente as preferências conforme a memória disponível. Um contexto
-muito pequeno pode não comportar o próprio contrato e a reserva de saída.
+Quando necessário, o contexto cresce em degraus de 4.096, respeitando
+`PdfMaxContextTokens`. O contexto efetivo também integra a chave de cache; as
+preferências salvas não são alteradas. Essa expansão pode exigir mais memória.
+Documentos que ultrapassam o máximo são recusados antes do envio, com uma
+mensagem que informa tamanho, estimativa necessária e máximo configurado.
+Não há chunking, truncamento de entrada ou retry com contexto maior.
 
-`WaitForCompletion`, `TimeoutSeconds` e `KeepAliveSeconds` continuam obedecidos.
+`WaitForCompletion` e `TimeoutSeconds` continuam obedecidos. PDFs usam
+`PdfKeepAliveSeconds` (padrão 300); screenshots preservam `KeepAliveSeconds`.
 Cancelamento é propagado ao cliente existente e às operações de cache.
 A abertura e a leitura interna de uma página no PdfPig são síncronas: o
 cancelamento da extração é cooperativo entre essas operações.
@@ -108,16 +126,18 @@ O cache usa o `IAnalysisCache` existente e sua tabela já existente
 Quando uma inferência for bem-sucedida, somente o resultado estruturado validado
 será armazenado nesse cache técnico existente.
 
-A chave é um SHA-256 com domínio `pdf-text-v1`, diferente de `vision-v2`, considerando:
+A chave é um SHA-256 com domínio `pdf-text-v2`, diferente de `vision-v2`, considerando:
 
 - SHA-256 do texto completo.
 - Digest e nome do modelo local.
 - Endereço local normalizado.
-- Versões e conteúdo do prompt/schema.
+- Versão do prompt e conteúdo completo do prompt/schema compartilhado.
 - Contexto, temperatura, política de saída, thinking e keep-alive.
 
 O `CacheKey` visual não é usado. Resultados textuais não podem substituir análises
-de imagem. O texto integral do PDF e o JSON do modelo não são escritos nos logs.
+de imagem. A versão v2 impede reutilizar o cache PDF anterior de seis campos;
+não há alteração de tabela nem exclusão dos registros antigos.
+O texto integral do PDF e o JSON do modelo não são escritos nos logs.
 Os logs registram operação, tipo da exceção, stack técnica e metadados HTTP.
 
 ## Estado e interface
@@ -146,7 +166,7 @@ Novos nesta implementação:
 
 - `JobTracker/Modules/JobAnalysis/Application/Interfaces/IJobPdfAnalyzer.cs`
 - `JobTracker/Modules/JobAnalysis/Infraestructure/Ollama/OllamaPdfExtractionContract.cs`
-- `JobTracker/Modules/JobAnalysis/Infraestructure/Ollama/OllamaPdfResultMapper.cs`
+- `JobTracker/Modules/JobAnalysis/Infraestructure/Ollama/OllamaPdfContextBudget.cs`
 - `JobTracker/Modules/JobAnalysis/Infraestructure/Ollama/OllamaClient.Pdf.cs`
 - `JobTracker/Modules/JobAnalysis/Infraestructure/Ollama/OllamaJobPdfAnalyzer.cs`
 - `docs/analise-pdf-ollama.md`
@@ -157,7 +177,9 @@ Arquivos preexistentes ajustados:
 - `JobTracker/Modules/JobAnalysis/Application/Interfaces/IPdfTextExtractor.cs`:
   token opcional, preservando chamadas existentes.
 - `JobTracker/Modules/JobAnalysis/Infraestructure/PdfPigTextExtractor.cs`: cancelamento cooperativo.
-- `JobTracker/Modules/JobAnalysis/Infraestructure/Ollama/OllamaClient.cs`: classe partial.
+- `JobTracker/Modules/JobAnalysis/Infraestructure/Ollama/OllamaClient.cs`: classe partial e parser compartilhado.
+- `JobTracker/Modules/JobAnalysis/Infraestructure/Ollama/OllamaResultMapper.cs`: parser e mapeamento comum de JobContent.
+- `JobTracker/Modules/JobAnalysis/Infraestructure/Ollama/OllamaContracts.cs`: descrições do schema independentes da origem textual/visual.
 - `JobTracker/Presentation/ViewModels/Imports/PdfImportViewModel.cs`: análise e estado.
 - `JobTracker/Presentation/Views/Imports/PdfImportView.xaml`: comandos, progresso e prévia.
 - `JobTracker/Presentation/ViewModels/JobEditorViewModel.cs`: salvar somente no formulário individual.
@@ -173,7 +195,16 @@ no editor e referências já instaladas de PdfPig/CommunityToolkit em
 A classe vazia e não utilizada `IJobAnalyzer.cs`, que ainda não estava rastreada,
 foi removida ao criar a interface específica.
 
-## Verificações
+## Verificações do ajuste arquitetural (31/10/2026)
+
+- Build e testes Release: 36 testes aprovados, incluindo contratos completos,
+  mapeamento de todos os campos, JSON inválido, conflitos, resposta interrompida,
+  falha HTTP, cancelamento, validação de cache e preservação do envio de screenshots.
+- Os testes HTTP usam respostas controladas; não substituem inferência real.
+- DTO, schema e mapper exclusivos do PDF foram removidos. Nenhuma dependência foi adicionada.
+- A qualidade da extração com PDFs e screenshots reais não foi revalidada neste ajuste.
+
+## Verificações da entrega inicial
 
 - Build inicial antes da implementação: aprovado, zero erros e avisos.
 - `dotnet build JobTracker/JobTracker.slnx --no-restore -v minimal`:
