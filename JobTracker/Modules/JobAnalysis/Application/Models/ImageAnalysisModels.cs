@@ -17,11 +17,17 @@ public sealed record JobImageAnalysisResult(JobContent Content, OcrCapture? Capt
 
 public sealed record OllamaOptions
 {
+    public const string DefaultModel = "qwen3-vl:4b-instruct";
     public const int LowMemoryContextTokens = 4096;
     // Missing properties in existing preferences receive this default without rewriting the database.
     public bool PreferLowMemoryIndividualAnalysis { get; init; } = true;
     public string BaseUrl { get; init; } = "http://127.0.0.1:11434";
-    public string Model { get; init; } = "qwen3-vl:8b";
+    public string Model { get; init; } = DefaultModel;
+    // Empty retains the image model when loading preferences written before PDF-specific settings.
+    public string PdfModel { get; init; } = "";
+    public int PdfContextTokens { get; init; } = 4096;
+    public int PdfMaxContextTokens { get; init; } = 8192;
+    public int PdfKeepAliveSeconds { get; init; } = 300;
     public int TimeoutSeconds { get; init; } = 300;
     public bool WaitForCompletion { get; init; } = true;
     public int ContextTokens { get; init; } = 8192;
@@ -32,6 +38,20 @@ public sealed record OllamaOptions
     public int MaxImages { get; init; } = 30;
     public long MaxBatchImageBytes { get; init; } = 24 * 1024 * 1024;
     public long MaxBatchPixels { get; init; } = 24000000;
+
+    public string PdfModelName() => PdfModel.Length == 0 ? Model : PdfModel;
+
+    public OllamaOptions ForPdfAnalysis()
+    {
+        Validate();
+        return this with
+        {
+            Model = PdfModelName(),
+            ContextTokens = PdfContextTokens,
+            MaxContextTokens = PdfMaxContextTokens,
+            KeepAliveSeconds = PdfKeepAliveSeconds
+        };
+    }
 
     public Uri ServerUri()
     {
@@ -48,9 +68,12 @@ public sealed record OllamaOptions
     public void Validate()
     {
         _ = ServerUri();
-        if (Model != "qwen3-vl:8b" || string.IsNullOrWhiteSpace(Model) || Model.Length > 200 || Model.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not ('.' or '-' or '_' or ':' or '/')) ||
-            Model.Contains("cloud", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("Esta versão utiliza exclusivamente o modelo local qwen3-vl:8b.");
+        ValidateModelName(Model);
+        if (PdfModel is null) throw new ArgumentException("O modelo de PDF não pode ser nulo.");
+        if (PdfModel.Length > 0) ValidateModelName(PdfModel);
+        if (PdfContextTokens is < 2048 or > 32768 || PdfMaxContextTokens < PdfContextTokens || PdfMaxContextTokens > 262144 ||
+            PdfKeepAliveSeconds is < 0 or > 3600)
+            throw new ArgumentException("PDFs: contexto inicial 2.048–32.768; máximo entre o inicial e 262.144; permanência 0–3.600 segundos.");
         if (KeepAliveSeconds is < 0 or > 3600 || MaxPreparedDimension is < 1024 or > 16000)
             throw new ArgumentException("Permanência: 0–3.600 segundos; dimensão de preparação: 1.024–16.000 pixels.");
         if (TimeoutSeconds is < 10 or > 3600 || BatchSize is < 1 or > 10 || MaxImages is < 1 or > 100 || BatchSize > MaxImages ||
@@ -60,5 +83,13 @@ public sealed record OllamaOptions
             throw new ArgumentException("O contexto do Ollama deve estar entre 2.048 e 32.768 tokens. Contextos maiores exigem mais memória.");
         if (MaxContextTokens < ContextTokens || MaxContextTokens > 262144)
             throw new ArgumentException("O contexto máximo deve ser pelo menos o contexto inicial e no máximo 262.144 tokens. A memória disponível pode impedir atingir esse valor.");
+    }
+
+    private static void ValidateModelName(string model)
+    {
+        if (string.IsNullOrWhiteSpace(model) || model.Length > 200 || !char.IsAsciiLetterOrDigit(model[0]) ||
+            model.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not ('.' or '-' or '_' or ':' or '/')) ||
+            model.Contains("cloud", StringComparison.OrdinalIgnoreCase) || model.Contains("://", StringComparison.Ordinal))
+            throw new ArgumentException("Informe a tag exata de um modelo instalado no Ollama local. Modelos cloud e URLs não são permitidos.");
     }
 }

@@ -21,13 +21,16 @@ public sealed partial class OllamaClient(HttpClient http, IAnalysisCache cache, 
     public async Task VerifyAsync(OllamaOptions options, CancellationToken cancellationToken) =>
         _ = await ModelIdentityAsync(options, cancellationToken).ConfigureAwait(false);
 
+    public async Task VerifyPdfAsync(OllamaOptions options, CancellationToken cancellationToken) =>
+        _ = await ModelIdentityAsync(options.ForPdfAnalysis(), cancellationToken, requiresVision: false).ConfigureAwait(false);
+
     public async Task<string> AnalysisIdentityAsync(OllamaOptions options, CancellationToken cancellationToken)
     {
         string digest = await ModelIdentityAsync(options, cancellationToken).ConfigureAwait(false);
         return CacheKey(options, [], digest + OllamaExtractionContract.SystemPrompt + OllamaGroupingContract.Prompt + OllamaGroupingContract.Schema.ToJsonString(), options.ContextTokens);
     }
 
-    private async Task<string> ModelIdentityAsync(OllamaOptions options, CancellationToken cancellationToken)
+    private async Task<string> ModelIdentityAsync(OllamaOptions options, CancellationToken cancellationToken, bool requiresVision = true)
     {
         options.Validate();
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(options.ServerUri(), "api/tags"));
@@ -41,8 +44,9 @@ public sealed partial class OllamaClient(HttpClient http, IAnalysisCache cache, 
                 $"O modelo {options.Model} não foi encontrado no Ollama. Verifique se está instalado.");
         if (!string.IsNullOrWhiteSpace(model.RemoteHost) || !string.IsNullOrWhiteSpace(model.RemoteModel))
             throw new ImageAnalysisException(ImageAnalysisFailure.ModelMissing,
-                "O modelo selecionado usa um servidor remoto. Selecione um modelo instalado localmente para manter os prints neste computador.");
+                "O modelo selecionado usa um servidor remoto. Selecione um modelo instalado localmente para manter os dados neste computador.");
         if (string.IsNullOrWhiteSpace(model.Digest)) throw InvalidResponse();
+        await ValidateModelCapabilitiesAsync(options, model.Digest, requiresVision, cancellationToken).ConfigureAwait(false);
         return model.Digest;
     }
 

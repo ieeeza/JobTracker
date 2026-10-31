@@ -76,3 +76,20 @@ se trata de estimativa e preserva o original.
 Esta fase também registra os componentes compartilhados de PDF já preparados
 na etapa arquitetural anterior, necessários para compilar o orçamento separado.
 Não inclui alterações anteriores não relacionadas no bootstrap, README ou serviços de UI.
+
+## Fase 3 — configuração por finalidade
+
+`Model`, limites visuais e preferências já salvas permanecem intactos. Foram
+acrescentados `PdfModel`, `PdfContextTokens=4096`, `PdfMaxContextTokens=8192` e
+`PdfKeepAliveSeconds=300`. `PdfModel` vazio usa o modelo visual já salvo, para
+compatibilidade; quando preenchido, é independente. Não há atualização direta
+do banco pessoal nem alteração de configuração global do Ollama.
+
+Nomes são validados sintaticamente e resolvidos nas tags locais a cada operação.
+Não há lista fixa de nomes aceitos nem instalação automática. Metadados remotos
+são rejeitados tanto em tags quanto em `/api/show`; loopback continua obrigatório.
+Screenshots exigem `completion` e `vision`; PDF exige `completion`. Uma tag
+textual não pode passar pela validação de visão. Capacidades têm cache limitado
+a 32 entradas/5 minutos, separado por servidor, nome e digest. Tags continuam
+sendo consultadas para detectar remoção ou substituição do modelo sem usar
+identidades obsoletas no cache de resultados.

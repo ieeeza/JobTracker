@@ -12,4 +12,5 @@ public interface IOllamaConnection
 {
     Task<string> AnalysisIdentityAsync(OllamaOptions options, CancellationToken cancellationToken);
     Task VerifyAsync(OllamaOptions options, CancellationToken cancellationToken);
+    Task VerifyPdfAsync(OllamaOptions options, CancellationToken cancellationToken);
 }

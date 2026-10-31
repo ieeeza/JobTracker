@@ -14,12 +14,13 @@ public sealed partial class OllamaClient
     internal async Task<OllamaJobData> ExtractPdfAsync(
         string text, OllamaOptions options, CancellationToken cancellationToken)
     {
+        options = options.ForPdfAnalysis();
         int contextTokens = OllamaPdfContextBudget.SelectContextTokens(text, options);
 
         await _inference.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            string digest = await ModelIdentityAsync(options, cancellationToken).ConfigureAwait(false);
+            string digest = await ModelIdentityAsync(options, cancellationToken, requiresVision: false).ConfigureAwait(false);
             string cacheKey = PdfCacheKey(text, digest, options, contextTokens);
             if (await cache.ReadAsync(cacheKey, cancellationToken).ConfigureAwait(false) is { } saved)
                 return OllamaResultMapper.ParsePdf(saved, cancellationToken);
