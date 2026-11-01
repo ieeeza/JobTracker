@@ -67,81 +67,72 @@
             <StackPanel>
                 <TextBlock Text="Dados identificados pela IA" Style="{StaticResource Heading}" />
                 <TextBlock
-                    Text="Pré-visualização para conferência. Campos vazios não foram identificados; nenhuma vaga é salva nesta etapa."
+                    Text="Revise e corrija os dados antes de salvar. Cargo e empresa são obrigatórios; a URL é opcional. A vaga será cadastrada com status Salva."
                     Style="{StaticResource Muted}"
                     Margin="0,0,0,16" />
-                <TextBlock Text="Cargo" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.Title, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AutomationProperties.Name="Cargo identificado no PDF" />
-                <TextBlock Text="Empresa" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.Company, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AutomationProperties.Name="Empresa identificada no PDF" />
-                <TextBlock Text="Localização" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.Location, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AutomationProperties.Name="Localização identificada no PDF" />
-                <TextBlock Text="Modalidade" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.WorkMode, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AutomationProperties.Name="Modalidade identificada no PDF" />
-                <TextBlock Text="Senioridade" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.Seniority, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AutomationProperties.Name="Senioridade identificada no PDF" />
-                <TextBlock Text="Contratação e jornada" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.Contract, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AutomationProperties.Name="Contratação identificada no PDF" />
-                <TextBlock Text="Remuneração" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.Salary, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AutomationProperties.Name="Remuneração identificada no PDF" />
-                <TextBlock Text="URL da vaga" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Url, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AutomationProperties.Name="URL identificada no PDF" />
-                <TextBlock Text="Requisitos obrigatórios e desejáveis" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.Requirements, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AcceptsReturn="True"
-                    VerticalScrollBarVisibility="Auto"
-                    MaxHeight="220"
-                    AutomationProperties.Name="Requisitos identificados no PDF" />
-                <TextBlock Text="Tecnologias" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.Technologies, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AutomationProperties.Name="Tecnologias identificadas no PDF" />
-                <TextBlock Text="Descrição, responsabilidades e benefícios" FontWeight="SemiBold" />
-                <TextBox
-                    Text="{Binding AnalysisResult.Content.Description, Mode=OneWay}"
-                    IsReadOnly="True"
-                    TextWrapping="Wrap"
-                    AcceptsReturn="True"
-                    VerticalScrollBarVisibility="Auto"
-                    Height="220"
-                    AutomationProperties.Name="Descrição identificada no PDF" />
+                <StackPanel IsEnabled="{Binding CanEditDraft}">
+                    <TextBlock Text="Cargo *" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AutomationProperties.Name="Cargo identificado no PDF" />
+                    <TextBlock Text="Empresa *" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Company, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AutomationProperties.Name="Empresa identificada no PDF" />
+                    <TextBlock Text="Localização" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Location, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AutomationProperties.Name="Localização identificada no PDF" />
+                    <TextBlock Text="Modalidade" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.WorkMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AutomationProperties.Name="Modalidade identificada no PDF" />
+                    <TextBlock Text="Senioridade" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Seniority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AutomationProperties.Name="Senioridade identificada no PDF" />
+                    <TextBlock Text="Contratação e jornada" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Contract, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AutomationProperties.Name="Contratação identificada no PDF" />
+                    <TextBlock Text="Remuneração" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Salary, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AutomationProperties.Name="Remuneração identificada no PDF" />
+                    <TextBlock Text="URL da vaga" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Url, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AutomationProperties.Name="URL identificada no PDF" />
+                    <TextBlock Text="Requisitos obrigatórios e desejáveis" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Requirements, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AcceptsReturn="True"
+                        VerticalScrollBarVisibility="Auto"
+                        MaxHeight="220"
+                        AutomationProperties.Name="Requisitos identificados no PDF" />
+                    <TextBlock Text="Tecnologias" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Technologies, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AutomationProperties.Name="Tecnologias identificadas no PDF" />
+                    <TextBlock Text="Descrição, responsabilidades e benefícios" FontWeight="SemiBold" />
+                    <TextBox
+                        Text="{Binding Draft.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap"
+                        AcceptsReturn="True"
+                        VerticalScrollBarVisibility="Auto"
+                        Height="220"
+                        AutomationProperties.Name="Descrição identificada no PDF" />
+                </StackPanel>
                 <ItemsControl ItemsSource="{Binding AnalysisResult.Warnings}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -152,6 +143,17 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <Button
+                    Content="Salvar vaga"
+                    Command="{Binding SavePdfCommand}"
+                    HorizontalAlignment="Left"
+                    Margin="0,16,0,0"
+                    AutomationProperties.Name="Salvar vaga do PDF" />
+                <TextBlock
+                    Text="{Binding StatusMessage}"
+                    Style="{StaticResource Muted}"
+                    Margin="0,8,0,0"
+                    AutomationProperties.LiveSetting="Polite" />
             </StackPanel>
         </Border>
     </StackPanel>
