@@ -14,10 +14,10 @@ namespace JobTracker.Tests;
 public sealed class OllamaPdfContextTests
 {
     [Fact]
-    public void SmallDocumentKeepsInitialContext()
+    public void SmallDocumentUsesSmallestAutomaticContext()
     {
         var options = new OllamaOptions { ContextTokens = 12000 };
-        Assert.Equal(12000, OllamaPdfContextBudget.SelectContextTokens(new string('a', 100), options));
+        Assert.Equal(4096, OllamaPdfContextBudget.SelectContextTokens(new string('a', 100), options));
     }
 
     [Theory]
@@ -55,8 +55,8 @@ public sealed class OllamaPdfContextTests
     [Fact]
     public async Task SendsFullTextWithExpandedContextAndCachesByEffectiveContext()
     {
-        string text = new('á', 30000);
-        var options = new OllamaOptions { PdfContextTokens = 12000, PdfMaxContextTokens = 65536 };
+        string text = new('á', 3000);
+        var options = new OllamaOptions { PdfContextTokens = 4096, PdfMaxContextTokens = 8192 };
         using var handler = new PdfHandler();
         using var http = new HttpClient(handler);
         var cache = new MemoryCache();
@@ -67,10 +67,10 @@ public sealed class OllamaPdfContextTests
 
         Assert.Equal(1, handler.ChatCalls);
         Assert.Equal(OllamaPdfExtractionContract.UserPrefix + text, handler.UserContent);
-        Assert.InRange(handler.ContextTokens, 32769, options.PdfMaxContextTokens);
+        Assert.Equal(8192, handler.ContextTokens);
 
         // Changing the initial setting without changing the effective context preserves the cache hit.
-        await client.ExtractPdfAsync(text, options with { PdfContextTokens = 16000 }, CancellationToken.None);
+        await client.ExtractPdfAsync(text, options with { PdfContextTokens = 6000 }, CancellationToken.None);
         Assert.Equal(1, handler.ChatCalls);
         Assert.Single(cache.Entries);
     }
@@ -114,7 +114,7 @@ public sealed class OllamaPdfContextTests
             if (request.Method == HttpMethod.Get)
                 return JsonResponse("""{"models":[{"name":"qwen3-vl:4b-instruct","digest":"test-digest"}]}""");
             if (request.RequestUri?.AbsolutePath == "/api/show")
-                return JsonResponse("""{"capabilities":["completion","vision"]}""");
+                return JsonResponse("""{"capabilities":["completion","vision"],"model_info":{"general.architecture":"qwen3vl","qwen3vl.context_length":262144}}""");
 
             ChatCalls++;
             Assert.NotNull(request.Content);

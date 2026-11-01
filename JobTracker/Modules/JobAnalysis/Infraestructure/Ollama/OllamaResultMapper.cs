@@ -69,13 +69,23 @@ internal static class OllamaResultMapper
     }
 
     public static PdfJobAnalysisResult MapPdf(OllamaJobData data, CancellationToken ct)
+        => MapPdf([data], ct);
+
+    public static PdfJobAnalysisResult MapPdf(IReadOnlyList<OllamaJobData> blocks, CancellationToken ct)
     {
-        var (content, url) = MapContent([data], ct);
+        if (blocks.Count == 0) throw OllamaClient.InvalidResponse();
+        var (content, url) = MapContent(blocks, ct, pdf: true);
         if (content.Title.Count(char.IsLetter) < 2 && content.Description.Count(char.IsLetter) < 20)
             throw new ImageAnalysisException(ImageAnalysisFailure.InvalidResponse,
                 "A IA não identificou cargo ou descrição suficientes para reconhecer uma vaga. " +
                 "Confira se o PDF contém uma única oportunidade e se o texto foi extraído corretamente.");
         var warnings = CreateWarnings(content, "Sugestões de IA local: confira cada campo no PDF. Nenhuma vaga foi salva.");
+        if (blocks.Count > 1)
+        {
+            warnings.Add($"{blocks.Count} blocos consolidados na ordem do texto. Confira a continuidade e todos os campos antes de salvar.");
+            if (blocks.Any(block => string.IsNullOrWhiteSpace(block.Title) || string.IsNullOrWhiteSpace(block.Company)))
+                warnings.Add("Há blocos sem identificação completa. Confirme no texto que todas as seções pertencem à mesma vaga.");
+        }
         ct.ThrowIfCancellationRequested();
         return new(content, warnings.AsReadOnly(), url);
     }
@@ -88,7 +98,7 @@ internal static class OllamaResultMapper
         return warnings;
     }
 
-    private static (JobContent Content, string Url) MapContent(IReadOnlyList<OllamaJobData> batches, CancellationToken ct)
+    private static (JobContent Content, string Url) MapContent(IReadOnlyList<OllamaJobData> batches, CancellationToken ct, bool pdf = false)
     {
         foreach (var batch in batches) Validate(batch);
         string Scalar(string name, Func<OllamaJobData, string?> select)
@@ -97,7 +107,9 @@ internal static class OllamaResultMapper
                 .DistinctBy(JobTextKey.Normalize).ToArray();
             if (values.Length > 1)
                 throw new ImageAnalysisException(ImageAnalysisFailure.ConflictingJobs,
-                    $"Os lotes contêm informações divergentes em {name}. Nenhum dado foi combinado. Revise as capturas e analise apenas uma vaga por vez.");
+                    pdf
+                        ? $"Os blocos do PDF contêm informações divergentes em {name}. Nenhum dado foi combinado. Revise o texto e mantenha apenas uma vaga."
+                        : $"Os lotes contêm informações divergentes em {name}. Nenhum dado foi combinado. Revise as capturas e analise apenas uma vaga por vez.");
             return values.FirstOrDefault() ?? "";
         }
         string Join(IEnumerable<string> values) => string.Join('\n', values.Select(v => JobTextNormalizer.Normalize(Clean(v), ct))

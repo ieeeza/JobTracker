@@ -4,5 +4,7 @@ namespace JobTracker.Modules.JobAnalysis.Application.Interfaces;
 
 public interface IJobPdfAnalyzer
 {
-    Task<PdfJobAnalysisResult> AnalyzeAsync(string extractedText, CancellationToken cancellationToken = default);
+    Task<PdfAnalysisEstimate> EstimateAsync(string text, CancellationToken cancellationToken = default);
+    Task<PdfJobAnalysisResult> AnalyzeAsync(string extractedText, CancellationToken cancellationToken = default,
+        IProgress<PdfAnalysisProgress>? progress = null);
 }

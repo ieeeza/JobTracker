@@ -49,7 +49,11 @@ internal sealed record OllamaTagsResponse(IReadOnlyList<OllamaModel?>? Models);
 internal sealed record OllamaShowRequest(string Model);
 internal sealed record OllamaShowResponse(IReadOnlyList<string>? Capabilities,
     [property: JsonPropertyName("remote_model")] string? RemoteModel,
-    [property: JsonPropertyName("remote_host")] string? RemoteHost);
+    [property: JsonPropertyName("remote_host")] string? RemoteHost)
+{
+    [JsonPropertyName("model_info")]
+    public Dictionary<string, JsonElement>? ModelInfo { get; init; }
+}
 
 internal sealed record OllamaJobData
 {

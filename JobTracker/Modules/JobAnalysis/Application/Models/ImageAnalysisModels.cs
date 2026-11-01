@@ -47,7 +47,7 @@ public sealed record OllamaOptions
         return this with
         {
             Model = PdfModelName(),
-            ContextTokens = PdfContextTokens,
+            ContextTokens = Math.Min(4096, PdfMaxContextTokens),
             MaxContextTokens = PdfMaxContextTokens,
             KeepAliveSeconds = PdfKeepAliveSeconds
         };
@@ -71,9 +71,9 @@ public sealed record OllamaOptions
         ValidateModelName(Model);
         if (PdfModel is null) throw new ArgumentException("O modelo de PDF não pode ser nulo.");
         if (PdfModel.Length > 0) ValidateModelName(PdfModel);
-        if (PdfContextTokens is < 2048 or > 32768 || PdfMaxContextTokens < PdfContextTokens || PdfMaxContextTokens > 262144 ||
+        if (PdfContextTokens is < 2048 or > 32768 || PdfMaxContextTokens is < 2048 or > 262144 ||
             PdfKeepAliveSeconds is < 0 or > 3600)
-            throw new ArgumentException("PDFs: contexto inicial 2.048–32.768; máximo entre o inicial e 262.144; permanência 0–3.600 segundos.");
+            throw new ArgumentException("PDFs: contexto legado 2.048–32.768; limite máximo 2.048–262.144; permanência 0–3.600 segundos.");
         if (KeepAliveSeconds is < 0 or > 3600 || MaxPreparedDimension is < 1024 or > 16000)
             throw new ArgumentException("Permanência: 0–3.600 segundos; dimensão de preparação: 1.024–16.000 pixels.");
         if (TimeoutSeconds is < 10 or > 3600 || BatchSize is < 1 or > 10 || MaxImages is < 1 or > 100 || BatchSize > MaxImages ||

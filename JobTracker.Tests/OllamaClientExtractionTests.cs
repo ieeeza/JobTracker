@@ -122,7 +122,7 @@ public sealed class OllamaClientExtractionTests
             if (request.Method == HttpMethod.Get)
                 return JsonResponse("""{"models":[{"name":"qwen3-vl:4b-instruct","digest":"test-digest"}]}""");
             if (request.RequestUri?.AbsolutePath == "/api/show")
-                return JsonResponse("""{"capabilities":["completion","vision"]}""");
+                return JsonResponse("""{"capabilities":["completion","vision"],"model_info":{"general.architecture":"qwen3vl","qwen3vl.context_length":262144}}""");
             Assert.NotNull(request.Content);
             using var document = JsonDocument.Parse(await request.Content.ReadAsStringAsync(ct));
             Requests.Add(document.RootElement.Clone());

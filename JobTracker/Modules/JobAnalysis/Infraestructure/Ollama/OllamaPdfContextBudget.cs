@@ -22,14 +22,14 @@ internal sealed record OllamaPdfContextBudget(int TextBytes, long TextTokens, lo
     public long InputTokens => TextTokens + SystemPromptTokens + PrefixTokens + MessageOverheadTokens;
     public long RequiredTokens => InputTokens + OutputTokens + SafetyTokens;
 
-    public static OllamaPdfContextBudget Estimate(string text)
+    public static OllamaPdfContextBudget Estimate(string text, string? prefix = null, bool fragment = false)
     {
-        if (string.IsNullOrWhiteSpace(text) || text.Count(char.IsLetter) < 20)
+        if (string.IsNullOrWhiteSpace(text) || !fragment && text.Count(char.IsLetter) < 20)
             throw new ArgumentException("O PDF não contém texto suficiente para identificar uma vaga. Confira o texto extraído.");
 
         long textTokens = EstimateTokens(text);
         long systemTokens = EstimateTokens(OllamaPdfExtractionContract.SystemPrompt);
-        long prefixTokens = EstimateTokens(OllamaPdfExtractionContract.UserPrefix);
+        long prefixTokens = EstimateTokens(prefix ?? OllamaPdfExtractionContract.UserPrefix);
         long outputTokens = Math.Max(MinimumOutputTokens, textTokens + OutputStructureTokens);
         long subtotal = textTokens + systemTokens + prefixTokens + MessageOverheadTokens + outputTokens;
         long safetyTokens = (subtotal * SafetyPercent + 99) / 100;
@@ -48,7 +48,8 @@ internal sealed record OllamaPdfContextBudget(int TextBytes, long TextTokens, lo
                 "O texto original foi preservado e não foi enviado. Use um documento menor de uma única vaga " +
                 "ou ajuste o contexto de PDFs conforme a memória disponível. A estimativa varia com o modelo.");
 
-        if (RequiredTokens <= options.ContextTokens) return options.ContextTokens;
+        if (RequiredTokens <= Math.Min(ContextStepTokens, options.MaxContextTokens))
+            return Math.Min(ContextStepTokens, options.MaxContextTokens);
         long rounded = ((RequiredTokens + ContextStepTokens - 1) / ContextStepTokens) * ContextStepTokens;
         return checked((int)Math.Min(rounded, options.MaxContextTokens));
     }

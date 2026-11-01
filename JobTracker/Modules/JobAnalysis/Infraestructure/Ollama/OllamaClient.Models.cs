@@ -9,6 +9,18 @@ namespace JobTracker.Modules.JobAnalysis.Infrastructure.Ollama;
 
 public sealed partial class OllamaClient
 {
+    private int PdfModelContext(OllamaOptions options, string digest)
+    {
+        string key = string.Join('\n', options.ServerUri().AbsoluteUri, options.Model, digest);
+        if (_modelCapabilities.TryGetValue(key, out var entry) && entry.Details.ModelInfo is { } info &&
+            info.TryGetValue("general.architecture", out var architecture) && architecture.ValueKind == System.Text.Json.JsonValueKind.String &&
+            info.TryGetValue(architecture.GetString() + ".context_length", out var context) &&
+            context.ValueKind == System.Text.Json.JsonValueKind.Number &&
+            context.TryGetInt32(out int length) && length > 0) return length;
+        throw new ImageAnalysisException(ImageAnalysisFailure.ModelMissing,
+            "O Ollama não informou o limite de contexto textual do modelo. Verifique o modelo local antes de analisar o PDF.");
+    }
+
     private readonly ConcurrentDictionary<string, (DateTimeOffset CheckedAt, OllamaShowResponse Details)> _modelCapabilities = new();
     private static readonly TimeSpan ModelCapabilitiesLifetime = TimeSpan.FromMinutes(5);
     // Accessed only while holding _inference. Track our requests; never scan/unload unrelated models.

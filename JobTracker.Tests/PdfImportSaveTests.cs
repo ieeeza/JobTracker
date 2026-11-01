@@ -235,7 +235,11 @@ public sealed class PdfImportSaveTests
 
     private sealed class Analyzer : IJobPdfAnalyzer
     {
-        public Task<PdfJobAnalysisResult> AnalyzeAsync(string extractedText, CancellationToken cancellationToken = default) =>
+        public Task<PdfAnalysisEstimate> EstimateAsync(string text, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PdfAnalysisEstimate(text.Length, text.Length, 10, 1500, 4096, 8192, 1));
+
+        public Task<PdfJobAnalysisResult> AnalyzeAsync(string extractedText, CancellationToken cancellationToken = default,
+            IProgress<PdfAnalysisProgress>? progress = null) =>
             Task.FromResult(new PdfJobAnalysisResult(Content, ["Confira a remuneração."]));
     }
 }
