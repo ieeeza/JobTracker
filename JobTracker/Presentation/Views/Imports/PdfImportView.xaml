@@ -49,15 +49,24 @@
         <Border Style="{StaticResource Card}">
             <StackPanel>
                 <TextBlock Text="Texto extraído" Style="{StaticResource Heading}" />
+                <TextBlock Text="Edite o texto antes de analisar. Ctrl+Z desfaz; Ctrl+Y refaz. O PDF original não será alterado."
+                           Style="{StaticResource Muted}" Margin="0,0,0,8" />
+                <WrapPanel>
+                    <Button Content="Limpar texto" Command="{Binding CleanTextCommand}" />
+                    <Button Content="Desfazer limpeza" Command="{Binding UndoCleanupCommand}" />
+                    <Button Content="Restaurar texto original" Command="{Binding RestoreOriginalTextCommand}" />
+                </WrapPanel>
                 <TextBox
-                    Text="{Binding ExtractedText, Mode=OneWay}"
-                    IsReadOnly="True"
+                    Text="{Binding EditedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    IsEnabled="{Binding CanEditText}"
+                    IsUndoEnabled="True"
+                    UndoLimit="100"
                     TextWrapping="Wrap"
                     AcceptsReturn="True"
                     VerticalScrollBarVisibility="Auto"
                     HorizontalScrollBarVisibility="Disabled"
                     Height="220"
-                    AutomationProperties.Name="Texto original do PDF" />
+                    AutomationProperties.Name="Texto editável do PDF" />
             </StackPanel>
         </Border>
 

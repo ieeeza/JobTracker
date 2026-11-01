@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using JobTracker.Modules.JobAnalysis.Application.Exceptions;
 using JobTracker.Modules.JobAnalysis.Application.Interfaces;
 using JobTracker.Modules.JobAnalysis.Application.Models;
+using JobTracker.Modules.JobAnalysis.Application.Services;
 using JobTracker.Modules.JobApplications.Application;
 using JobTracker.Modules.JobApplications.Domain;
 using JobTracker.Presentation.Services;
@@ -43,8 +44,17 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
     private string? _selectedPdfPath;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AnalyzePdfCommand))]
     private string _extractedText = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AnalyzePdfCommand), nameof(RestoreOriginalTextCommand), nameof(CleanTextCommand))]
+    private string _editedText = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UndoCleanupCommand))]
+    private string? _textBeforeCleanup;
+
+    public bool CanEditText => _operations.IsIdle && !IsBusy;
 
     [ObservableProperty]
     private string _statusMessage = "Selecione um PDF para começar.";
@@ -98,10 +108,51 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
     partial void OnSelectedPdfPathChanged(string? value)
     {
         ExtractedText = string.Empty;
+        EditedText = string.Empty;
         AnalysisResult = null;
+        TextBeforeCleanup = null;
     }
 
-    partial void OnExtractedTextChanged(string value) => AnalysisResult = null;
+    partial void OnExtractedTextChanged(string value) => EditedText = value;
+
+    partial void OnEditedTextChanged(string value)
+    {
+        AnalysisResult = null;
+        TextBeforeCleanup = null;
+        SetStatus(string.IsNullOrWhiteSpace(value)
+            ? "O editor está vazio. Restaure o original ou insira o texto de uma vaga."
+            : "Texto atualizado. Confira o conteúdo antes de analisar com IA.");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRestoreOriginalText))]
+    private void RestoreOriginalText()
+    {
+        if (!CanRestoreOriginalText()) return;
+        EditedText = ExtractedText;
+        SetStatus("Texto original restaurado. As edições eram apenas em memória; o PDF não foi alterado.");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanCleanText))]
+    private void CleanText()
+    {
+        if (!CanCleanText()) return;
+        string cleaned = PdfTextCleanup.Clean(EditedText);
+        string beforeCleanup = EditedText;
+        bool changed = cleaned != EditedText;
+        EditedText = cleaned;
+        if (changed) TextBeforeCleanup = beforeCleanup;
+        SetStatus(changed
+            ? "Limpeza aplicada. Revise o texto; Desfazer limpeza recupera suas edições anteriores."
+            : "Nenhum trecho identificado com segurança para remoção. O texto foi mantido.");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUndoCleanup))]
+    private void UndoCleanup()
+    {
+        if (!CanUndoCleanup() || TextBeforeCleanup is not { } previous) return;
+        EditedText = previous;
+        SetStatus("Limpeza desfeita. As edições anteriores foram recuperadas.");
+    }
 
     [RelayCommand(CanExecute = nameof(CanSelectPdf))]
     private void SelectPdf()
@@ -116,6 +167,7 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
             SelectedPdfPath = filepath;
             // Selecting the same path again may point to a file changed on disk.
             ExtractedText = string.Empty;
+            EditedText = string.Empty;
             AnalysisResult = null;
             SetStatus("PDF selecionado. Extraia o texto para continuar.");
         }
@@ -135,6 +187,7 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
         {
             IsExtracting = true;
             ExtractedText = string.Empty;
+            EditedText = string.Empty;
             AnalysisResult = null;
             SetStatus("Extraindo texto do PDF…");
 
@@ -167,7 +220,7 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
     private async Task AnalyzePdfAsync()
     {
         if (!CanAnalyzePdf()) return;
-        string text = ExtractedText;
+        string text = EditedText;
 
         await _operations.RunAsync(nameof(AnalyzePdfAsync), async ct =>
         {
@@ -179,6 +232,11 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
             {
                 PdfJobAnalysisResult result = await _analyzer.AnalyzeAsync(text, ct);
                 ct.ThrowIfCancellationRequested();
+                if (EditedText != text)
+                {
+                    SetStatus("O texto mudou durante a análise. Analise novamente para obter dados correspondentes.");
+                    return;
+                }
                 AnalysisResult = result;
                 SetStatus("Análise concluída. Confira os dados identificados. Nenhuma vaga foi salva.");
             }
@@ -279,7 +337,10 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
     private bool CanSavePdf() => CanSelectPdf() && HasAnalysis && !IsSaved;
     private bool CanSelectPdf() => _operations.IsIdle && !IsBusy;
     private bool CanExtractPdf() => CanSelectPdf() && !string.IsNullOrWhiteSpace(SelectedPdfPath);
-    private bool CanAnalyzePdf() => CanSelectPdf() && !string.IsNullOrWhiteSpace(ExtractedText);
+    private bool CanAnalyzePdf() => CanSelectPdf() && !string.IsNullOrWhiteSpace(EditedText);
+    private bool CanRestoreOriginalText() => CanEditText && EditedText != ExtractedText;
+    private bool CanCleanText() => CanEditText && !string.IsNullOrWhiteSpace(EditedText);
+    private bool CanUndoCleanup() => CanEditText && TextBeforeCleanup is not null;
     private bool CanCancelPdf() => IsExtracting || IsAnalyzing;
 
     private void SetStatus(string message)
@@ -296,6 +357,10 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
         AnalyzePdfCommand.NotifyCanExecuteChanged();
         SavePdfCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanEditDraft));
+        OnPropertyChanged(nameof(CanEditText));
+        RestoreOriginalTextCommand.NotifyCanExecuteChanged();
+        CleanTextCommand.NotifyCanExecuteChanged();
+        UndoCleanupCommand.NotifyCanExecuteChanged();
     }
 
     private void LogFailure(string operation, Exception exception) =>
