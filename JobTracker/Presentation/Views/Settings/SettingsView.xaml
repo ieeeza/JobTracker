@@ -40,11 +40,8 @@
                         Style="{StaticResource Muted}" />
                     <Expander Header="Contexto e memória para PDFs" IsExpanded="True" Margin="0,8">
                         <StackPanel>
-                            <TextBlock Text="Contexto inicial de PDFs (padrão 4096)" />
-                            <TextBox
-                                Text="{Binding Ollama.PdfContextTokens, UpdateSourceTrigger=PropertyChanged}"
-                                MaxLength="5"
-                                AutomationProperties.Name="Contexto inicial de PDFs" />
+                            <TextBlock Text="Contexto automático: 4.096 ou 8.192 tokens, respeitando limites menores do modelo e da configuração."
+                                       Style="{StaticResource Muted}" />
                             <TextBlock Text="Contexto máximo de PDFs (padrão 8192)" />
                             <TextBox
                                 Text="{Binding Ollama.PdfMaxContextTokens, UpdateSourceTrigger=PropertyChanged}"
@@ -56,12 +53,12 @@
                                 MaxLength="4"
                                 AutomationProperties.Name="Permanência do modelo de PDF" />
                             <TextBlock
-                                Text="O contexto cresce somente quando o texto e a resposta precisam de mais espaço, até o máximo escolhido. Contextos maiores exigem mais memória. O documento nunca é cortado automaticamente."
+                                Text="O máximo configurado é um teto de segurança. A seleção automática não ultrapassa 8.192 tokens; textos maiores usam blocos sequenciais, sem descarte de trechos. PDFs têm limite de 5 minutos por bloco (ou o timeout configurado, se menor) e 15 minutos no total."
                                 Style="{StaticResource Muted}" />
                         </StackPanel>
                     </Expander>
                     <CheckBox
-                        Content="Aguardar o Ollama concluir, sem limite de tempo"
+                        Content="Imagens: aguardar o Ollama concluir, sem limite de tempo"
                         IsChecked="{Binding Ollama.WaitForCompletion}" />
                     <CheckBox
                         Content="Economizar memória na análise individual (recomendado para GPU de 8 GB)"

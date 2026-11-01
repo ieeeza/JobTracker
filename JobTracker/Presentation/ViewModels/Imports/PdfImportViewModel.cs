@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JobTracker.Modules.JobAnalysis.Application.Exceptions;
@@ -23,6 +24,9 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
     private readonly TrackingService _tracking;
     private readonly JobWorkspace _workspace;
     private readonly DesktopServices _desktop;
+    private readonly DispatcherTimer _estimateDelay = new() { Interval = TimeSpan.FromMilliseconds(400) };
+    private CancellationTokenSource? _estimateCancellation;
+    private bool _disposed;
 
     public PdfImportViewModel(IFilePickerService filePicker, IPdfTextExtractor extractor,
         IJobPdfAnalyzer analyzer, UiOperationState operations, ILogger<PdfImportViewModel> logger,
@@ -36,6 +40,7 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
         _tracking = tracking;
         _workspace = workspace;
         _desktop = desktop;
+        _estimateDelay.Tick += OnEstimateTick;
         _operations.PropertyChanged += OnOperationChanged;
     }
 
@@ -58,6 +63,9 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _statusMessage = "Selecione um PDF para começar.";
+
+    [ObservableProperty]
+    private string _contextEstimate = "Extraia ou insira o texto para estimar o contexto.";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsBusy))]
@@ -119,9 +127,59 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
     {
         AnalysisResult = null;
         TextBeforeCleanup = null;
+        QueueEstimate();
         SetStatus(string.IsNullOrWhiteSpace(value)
             ? "O editor está vazio. Restaure o original ou insira o texto de uma vaga."
             : "Texto atualizado. Confira o conteúdo antes de analisar com IA.");
+    }
+
+    private void QueueEstimate()
+    {
+        _estimateDelay.Stop();
+        _estimateCancellation?.Cancel();
+        if (_disposed || !CanEditText) return;
+        ContextEstimate = string.IsNullOrWhiteSpace(EditedText)
+            ? "Insira texto para estimar o contexto."
+            : $"{EditedText.Length:N0} caracteres • atualizando estimativa…";
+        if (!string.IsNullOrWhiteSpace(EditedText)) _estimateDelay.Start();
+    }
+
+    private async void OnEstimateTick(object? sender, EventArgs e)
+    {
+        _estimateDelay.Stop();
+        if (_disposed || !CanEditText) return;
+        string text = EditedText;
+        using var cancellation = new CancellationTokenSource();
+        _estimateCancellation = cancellation;
+        try
+        {
+            var estimate = await _analyzer.EstimateAsync(text, cancellation.Token);
+            if (cancellation.IsCancellationRequested || _disposed || EditedText != text) return;
+            ContextEstimate = $"{estimate.Characters:N0} caracteres • {estimate.Utf8Bytes:N0} bytes UTF-8\n" +
+                $"Texto ≈ {estimate.TextTokens:N0} tokens; leitura e resposta completas ≈ {estimate.RequiredTokens:N0} tokens.\n" +
+                (estimate.BlockCount == 1
+                    ? $"Contexto automático previsto: {estimate.ContextTokens:N0} tokens."
+                    : $"Previsão: {estimate.BlockCount} blocos, com até {estimate.ContextTokens:N0} tokens por bloco.") +
+                $" Limite de segurança: {estimate.MaximumContextTokens:N0}.\n" +
+                "Valores aproximados. O limite do modelo será conferido ao analisar.";
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            // A newer edit superseded this estimate; its message must remain untouched.
+            return;
+        }
+        catch (Exception ex)
+        {
+            if (cancellation.IsCancellationRequested || _disposed || EditedText != text) return;
+            LogFailure(nameof(OnEstimateTick), ex);
+            ContextEstimate = ex is ArgumentException or ImageAnalysisException
+                ? ex.Message
+                : "Não foi possível estimar o contexto. Confira as configurações do Ollama.";
+        }
+        finally
+        {
+            if (ReferenceEquals(_estimateCancellation, cancellation)) _estimateCancellation = null;
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanRestoreOriginalText))]
@@ -230,7 +288,12 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
 
             try
             {
-                PdfJobAnalysisResult result = await _analyzer.AnalyzeAsync(text, ct);
+                var progress = new Progress<PdfAnalysisProgress>(value =>
+                {
+                    if (!IsAnalyzing || ct.IsCancellationRequested || EditedText != text) return;
+                    SetStatus($"Analisando bloco {value.Block} de {value.BlockCount} • contexto de {value.ContextTokens:N0} tokens…");
+                });
+                PdfJobAnalysisResult result = await _analyzer.AnalyzeAsync(text, ct, progress);
                 ct.ThrowIfCancellationRequested();
                 if (EditedText != text)
                 {
@@ -361,11 +424,19 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
         RestoreOriginalTextCommand.NotifyCanExecuteChanged();
         CleanTextCommand.NotifyCanExecuteChanged();
         UndoCleanupCommand.NotifyCanExecuteChanged();
+        QueueEstimate();
     }
 
     private void LogFailure(string operation, Exception exception) =>
         _logger.LogWarning("PDF: operação {Operation} falhou. Tipo: {Type}; local: {Stack}",
             operation, exception.GetType().Name, exception.StackTrace);
 
-    public void Dispose() => _operations.PropertyChanged -= OnOperationChanged;
+    public void Dispose()
+    {
+        _disposed = true;
+        _estimateDelay.Stop();
+        _estimateDelay.Tick -= OnEstimateTick;
+        _estimateCancellation?.Cancel();
+        _operations.PropertyChanged -= OnOperationChanged;
+    }
 }

@@ -67,6 +67,12 @@
                     HorizontalScrollBarVisibility="Disabled"
                     Height="220"
                     AutomationProperties.Name="Texto editável do PDF" />
+                <TextBlock Text="{Binding ContextEstimate}" Style="{StaticResource Muted}"
+                           Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite" />
+                <TextBlock Text="Documentos maiores são divididos em até 12 blocos. Limites: 120 mil caracteres e 15 minutos; nenhum resultado parcial é apresentado como completo."
+                           Style="{StaticResource Muted}" Margin="0,8,0,0" />
+                <Button Content="Analisar com IA" Command="{Binding AnalyzePdfCommand}"
+                        HorizontalAlignment="Left" Margin="0,8,0,0" />
             </StackPanel>
         </Border>
 
