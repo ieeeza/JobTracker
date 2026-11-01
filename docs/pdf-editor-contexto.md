@@ -90,6 +90,10 @@ geram falha explícita. Os blocos concluídos não são apresentados como análi
 A prévia avisa quando houve consolidação e quando há blocos sem identidade
 completa, que precisam de conferência humana. Uma extração de IA não comprova
 cobertura factual integral. O botão Salvar permanece manual e separado da análise.
+Após a gravação confirmada, a aba limpa o arquivo selecionado, os textos original
+e editado, a prévia e os campos da vaga, ficando pronta para outro PDF. Erros de
+gravação preservam os dados. Uma falha de atualização dos painéis após gravar não
+restaura a prévia nem permite repetir o cadastro já concluído.
 
 O progresso informa bloco atual, total e contexto. A edição fica bloqueada enquanto
 a operação usa seu snapshot imutável; um resultado que não corresponde ao texto

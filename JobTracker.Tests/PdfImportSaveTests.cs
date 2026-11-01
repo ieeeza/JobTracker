@@ -48,7 +48,8 @@ public sealed class PdfImportSaveTests
         Assert.True(fixture.ViewModel.IsSaved);
         Assert.False(fixture.ViewModel.CanEditDraft);
         Assert.False(fixture.ViewModel.SavePdfCommand.CanExecute(null));
-        Assert.Equal("Texto original", fixture.ViewModel.ExtractedText);
+        AssertCleared(fixture.ViewModel);
+        Assert.Contains("Campos limpos", fixture.ViewModel.StatusMessage);
     }
 
     [Theory]
@@ -70,6 +71,10 @@ public sealed class PdfImportSaveTests
         Assert.Equal(title, fixture.ViewModel.Draft.Title);
         Assert.Equal(company, fixture.ViewModel.Draft.Company);
         Assert.Equal(url, fixture.ViewModel.Draft.Url);
+        Assert.Equal("Texto original", fixture.ViewModel.ExtractedText);
+        Assert.Equal("Texto original", fixture.ViewModel.EditedText);
+        Assert.Equal("vaga.pdf", fixture.ViewModel.SelectedPdfPath);
+        Assert.True(fixture.ViewModel.HasAnalysis);
         Assert.True(fixture.ViewModel.CanEditDraft);
         Assert.False(fixture.ViewModel.IsSaved);
         fixture.ViewModel.Draft.Fill(Content);
@@ -124,6 +129,7 @@ public sealed class PdfImportSaveTests
         Assert.True(fixture.ViewModel.IsSaved);
         Assert.Contains("Vaga salva no banco", fixture.ViewModel.StatusMessage);
         Assert.False(fixture.ViewModel.SavePdfCommand.CanExecute(null));
+        AssertCleared(fixture.ViewModel);
     }
 
     [Fact]
@@ -138,6 +144,8 @@ public sealed class PdfImportSaveTests
         Assert.Empty(await fixture.Tracking.ListAsync(default));
         Assert.False(fixture.ViewModel.IsSaved);
         Assert.Equal(Content, fixture.ViewModel.Draft.Content);
+        Assert.Equal("Texto original", fixture.ViewModel.EditedText);
+        Assert.Equal("vaga.pdf", fixture.ViewModel.SelectedPdfPath);
         Assert.Contains("Falha ao salvar", fixture.ViewModel.StatusMessage);
         Assert.DoesNotContain("sensitive-test-diagnostic", fixture.ViewModel.StatusMessage);
         fixture.ExecuteSql("DROP TRIGGER FailPdfInsert;");
@@ -177,6 +185,27 @@ public sealed class PdfImportSaveTests
         Assert.False(fixture.ViewModel.HasAnalysis);
         Assert.False(fixture.ViewModel.IsSaved);
         Assert.False(fixture.ViewModel.SavePdfCommand.CanExecute(null));
+        await fixture.ViewModel.ExtractPdfCommand.ExecuteAsync(null);
+        await fixture.ViewModel.AnalyzePdfCommand.ExecuteAsync(null);
+        Assert.True(fixture.ViewModel.CanEditDraft);
+        Assert.True(fixture.ViewModel.SavePdfCommand.CanExecute(null));
+    }
+
+    private static void AssertCleared(PdfImportViewModel viewModel)
+    {
+        Assert.Null(viewModel.SelectedPdfPath);
+        Assert.Empty(viewModel.ExtractedText);
+        Assert.Empty(viewModel.EditedText);
+        Assert.Null(viewModel.AnalysisResult);
+        Assert.Null(viewModel.TextBeforeCleanup);
+        Assert.Equal(new JobTracker.Presentation.ViewModels.EditorViewModel().Content, viewModel.Draft.Content);
+        Assert.Empty(viewModel.Draft.Url);
+        Assert.False(viewModel.HasAnalysis);
+        Assert.False(viewModel.ExtractPdfCommand.CanExecute(null));
+        Assert.False(viewModel.AnalyzePdfCommand.CanExecute(null));
+        Assert.False(viewModel.RestoreOriginalTextCommand.CanExecute(null));
+        Assert.False(viewModel.UndoCleanupCommand.CanExecute(null));
+        Assert.Equal("Insira texto para estimar o contexto.", viewModel.ContextEstimate);
     }
 
     private sealed class Fixture : IDisposable

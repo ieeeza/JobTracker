@@ -115,6 +115,7 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
 
     partial void OnSelectedPdfPathChanged(string? value)
     {
+        IsSaved = false;
         ExtractedText = string.Empty;
         EditedText = string.Empty;
         AnalysisResult = null;
@@ -383,8 +384,9 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
             }
 
             // Once persistence succeeds, a refresh failure must not allow a second insert.
+            ClearSavedPdf();
             IsSaved = true;
-            SetStatus("Vaga do PDF salva com sucesso, com status Salva. Selecione outro PDF para continuar.");
+            SetStatus("Vaga do PDF salva com sucesso. Campos limpos; selecione outro PDF para cadastrar a próxima vaga.");
             try
             {
                 await _workspace.ReloadAsync(CancellationToken.None);
@@ -395,6 +397,18 @@ public sealed partial class PdfImportViewModel : ObservableObject, IDisposable
                 SetStatus("Vaga salva no banco. Não foi possível atualizar os painéis; use Atualizar para visualizar o registro.");
             }
         });
+    }
+
+    private void ClearSavedPdf()
+    {
+        _estimateDelay.Stop();
+        _estimateCancellation?.Cancel();
+        SelectedPdfPath = null;
+        ExtractedText = string.Empty;
+        EditedText = string.Empty;
+        AnalysisResult = null;
+        TextBeforeCleanup = null;
+        ContextEstimate = "Insira texto para estimar o contexto.";
     }
 
     private bool CanSavePdf() => CanSelectPdf() && HasAnalysis && !IsSaved;
