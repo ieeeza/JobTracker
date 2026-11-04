@@ -1,7 +1,7 @@
-using System.IO;
 using JobTracker.Modules.JobAnalysis.Application.Exceptions;
 using JobTracker.Presentation.Commands;
 using Microsoft.Extensions.Logging;
+using System.IO;
 
 namespace JobTracker.Presentation.Services;
 

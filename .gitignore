@@ -2,6 +2,11 @@
 
 JobTracker/bin
 JobTracker/obj
+JobTracker.Tests/bin
+JobTracker.Tests/obj
 JobTracker/Properties/launchSettings.json
 JobTracker/JobTracker.csproj.user
 JobTracker/jobtracker.db
+**/*.db-wal
+**/*.db-shm
+artifacts/
